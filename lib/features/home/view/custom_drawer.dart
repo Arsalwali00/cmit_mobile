@@ -49,7 +49,7 @@ class CustomDrawer extends StatelessWidget {
                   ),
                   const SizedBox(height: 12),
                   const Text(
-                    "Rozi Malik",
+                    "Arslan Wali",
                     style: TextStyle(
                       color: Colors.black, // Black for contrast on white background
                       fontWeight: FontWeight.bold,
@@ -58,7 +58,7 @@ class CustomDrawer extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   const Text(
-                    "rozi.malik@gmail.com",
+                    "arsal@gmail.com",
                     style: TextStyle(
                       color: Colors.black54, // Subtle contrast for secondary text
                       fontSize: 14,

@@ -9,9 +9,9 @@ class EditProfileScreen extends StatefulWidget {
 
 class _EditProfileScreenState extends State<EditProfileScreen> {
   final TextEditingController nameController =
-  TextEditingController(text: "Rozi Malik");
+  TextEditingController(text: "Arslan Wali");
   final TextEditingController emailController =
-  TextEditingController(text: "rozimalik@gmail.com");
+  TextEditingController(text: "Arsal@gmail.com");
   final TextEditingController phoneController =
   TextEditingController(text: "03555123123");
   final TextEditingController locationController =
