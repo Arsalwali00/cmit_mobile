@@ -15,7 +15,7 @@ class HomeTopSection extends StatelessWidget {
           IntrinsicHeight(
             child: Row(
               children: [
-                Expanded(child: _buildStatCard("15", "Open\nInquiries", Colors.green[100]!)),
+                Expanded(child: _buildStatCard("15", "Inquiries", Colors.green[100]!)),
                 const SizedBox(width: 12),
                 Expanded(child: _buildStatCard("05", "In Progress", Colors.orange[100]!)),
                 const SizedBox(width: 12),
