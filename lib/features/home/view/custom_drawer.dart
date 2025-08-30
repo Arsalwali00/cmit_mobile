@@ -38,14 +38,8 @@ class CustomDrawer extends StatelessWidget {
                 children: [
                   const CircleAvatar(
                     radius: 30,
-                    backgroundColor: Colors.grey,
-                    child: Icon(
-                      Icons.person,
-                      size: 30,
-                      color: Colors.white, // White icon for contrast
-                    ),
-                    // Optionally use an image asset:
-                    // backgroundImage: AssetImage("assets/images/user.png"),
+                    backgroundColor: Colors.grey, // Fallback background color
+                    backgroundImage: AssetImage("assets/images/home/arslan.jpg"), // Only the image
                   ),
                   const SizedBox(height: 12),
                   const Text(

@@ -8,37 +8,37 @@ class NotificationScreen extends StatelessWidget {
       "title": "New Comment",
       "message": "A new Comment has been added to the inquiry.",
       "time": "1m ago",
-      "avatar": "assets/images/user1.jpg"
+      "avatar": "assets/images/home/arslan.jpg"
     },
     {
       "title": "Inquiry Updated",
       "message": "The Status of the inquiry 'Environment Audit Was Changed'",
       "time": "1m ago",
-      "avatar": "assets/images/user2.jpg"
+      "avatar": "assets/images/home/arslan.jpg"
     },
     {
       "title": "New Comment",
       "message": "A new Comment has been added to the inquiry.",
       "time": "1m ago",
-      "avatar": "assets/images/user3.jpg"
+      "avatar": "assets/images/home/arslan.jpg"
     },
     {
       "title": "Inquiry Updated",
       "message": "The Status of the inquiry 'Environment Audit Was Changed'",
       "time": "1m ago",
-      "avatar": "assets/images/user4.jpg"
+      "avatar": "assets/images/home/arslan.jpg"
     },
     {
       "title": "New Comment",
       "message": "A new Comment has been added to the inquiry.",
       "time": "1m ago",
-      "avatar": "assets/images/user5.jpg"
+      "avatar": "assets/images/home/arslan.jpg"
     },
     {
       "title": "Inquiry Updated",
       "message": "The Status of the inquiry 'Environment Audit Was Changed'",
       "time": "1m ago",
-      "avatar": "assets/images/user6.jpg"
+      "avatar": "assets/images/home/arslan.jpg"
     },
   ];
 

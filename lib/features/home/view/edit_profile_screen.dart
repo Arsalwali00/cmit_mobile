@@ -40,7 +40,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               children: [
                 const CircleAvatar(
                   radius: 50,
-                  backgroundImage: AssetImage("assets/profile.jpg"),
+                  backgroundImage: AssetImage("assets/images/home/arslan.jpg"),
                 ),
                 Positioned(
                   bottom: 0,
