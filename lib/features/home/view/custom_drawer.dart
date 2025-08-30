@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'inquiries_screen.dart'; // Import the InquiriesScreen file
+import 'activities_screen.dart'; // Import the ActivitiesScreen file
+import 'settings_screen.dart'; // Import the SettingsScreen file
 
 class CustomDrawer extends StatelessWidget {
   const CustomDrawer({super.key});
@@ -10,12 +12,12 @@ class CustomDrawer extends StatelessWidget {
       backgroundColor: Colors.white, // Explicitly set white background for the drawer
       child: Column(
         children: [
-          /// ✅ User Info Section
+          // User Info Section
           Container(
             width: double.infinity,
             padding: const EdgeInsets.fromLTRB(16, 40, 16, 16),
             decoration: const BoxDecoration(
-              color: Colors.white, // Already white, kept for consistency
+              color: Colors.white, // Consistent white background
               border: Border(
                 bottom: BorderSide(color: Colors.grey, width: 0.5),
               ),
@@ -31,7 +33,7 @@ class CustomDrawer extends StatelessWidget {
                     size: 30,
                     color: Colors.white, // White icon for contrast
                   ),
-                  // If you have an image asset, use:
+                  // Optionally use an image asset:
                   // backgroundImage: AssetImage("assets/images/user.png"),
                 ),
                 const SizedBox(height: 12),
@@ -47,7 +49,7 @@ class CustomDrawer extends StatelessWidget {
                 const Text(
                   "rozi.malik@gmail.com",
                   style: TextStyle(
-                    color: Colors.black54, // Slightly transparent black for contrast
+                    color: Colors.black54, // Subtle contrast for secondary text
                     fontSize: 14,
                   ),
                 ),
@@ -55,7 +57,7 @@ class CustomDrawer extends StatelessWidget {
             ),
           ),
 
-          /// ✅ Drawer Items
+          // Drawer Items
           Expanded(
             child: ListView(
               padding: EdgeInsets.zero,
@@ -64,15 +66,14 @@ class CustomDrawer extends StatelessWidget {
                   leading: const Icon(Icons.bolt_outlined, color: Colors.black87),
                   title: const Text(
                     "Inquiries",
-                    style: TextStyle(color: Colors.black87), // Black for contrast
+                    style: TextStyle(color: Colors.black87),
                   ),
                   onTap: () {
-                    // Navigate to InquiriesScreen
                     Navigator.pop(context); // Close the drawer
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => const InquiriesScreen(), // Ensure InquiriesScreen is defined
+                        builder: (context) => const InquiriesScreen(),
                       ),
                     );
                   },
@@ -84,7 +85,13 @@ class CustomDrawer extends StatelessWidget {
                     style: TextStyle(color: Colors.black87),
                   ),
                   onTap: () {
-                    Navigator.pop(context);
+                    Navigator.pop(context); // Close the drawer
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const ActivitiesScreen(),
+                      ),
+                    );
                   },
                 ),
                 ListTile(
@@ -94,10 +101,16 @@ class CustomDrawer extends StatelessWidget {
                     style: TextStyle(color: Colors.black87),
                   ),
                   onTap: () {
-                    Navigator.pop(context);
+                    Navigator.pop(context); // Close the drawer
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const SettingsScreen(),
+                      ),
+                    );
                   },
                 ),
-                const Divider(color: Colors.grey), // Grey divider for subtle separation
+                const Divider(color: Colors.grey), // Subtle divider
                 ListTile(
                   leading: const Icon(Icons.logout, color: Colors.red),
                   title: const Text(
@@ -105,8 +118,8 @@ class CustomDrawer extends StatelessWidget {
                     style: TextStyle(color: Colors.red),
                   ),
                   onTap: () {
-                    Navigator.pop(context);
-                    // Add logout logic here
+                    Navigator.pop(context); // Close the drawer
+                    // TODO: Implement logout logic (e.g., clear auth state, navigate to login screen)
                   },
                 ),
               ],
