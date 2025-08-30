@@ -1,26 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:cmit/features/calculator/view/calculator_screen.dart';
-import 'package:cmit/features/statistics/view/setting_screen.dart';
-import 'package:cmit/features/profile/view/profile_screen.dart';
-import 'package:cmit/features/home/widgets/custom_bottom_nav_bar.dart';
 import 'package:cmit/features/home/widgets/home_top_section.dart';
 import 'package:cmit/features/home/view/custom_drawer.dart';
+import 'package:cmit/features/home/view/notification_screen.dart'; // ✅ Import notification screen
 
-class HomeScreen extends StatefulWidget {
+class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
-
-  @override
-  _HomeScreenState createState() => _HomeScreenState();
-}
-
-class _HomeScreenState extends State<HomeScreen> {
-  int _currentIndex = 0;
-
-  void _onTabTapped(int index) {
-    setState(() {
-      _currentIndex = index;
-    });
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -52,15 +36,19 @@ class _HomeScreenState extends State<HomeScreen> {
           IconButton(
             icon: const Icon(Icons.notifications, color: Colors.black87),
             onPressed: () {
-              // Navigate to notifications
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const NotificationScreen(),
+                ),
+              );
             },
           ),
         ],
       ),
-      drawer: const CustomDrawer(), // Moved drawer here
+      drawer: const CustomDrawer(),
       body: SafeArea(
-        child: _currentIndex == 0
-            ? SingleChildScrollView(
+        child: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -68,26 +56,8 @@ class _HomeScreenState extends State<HomeScreen> {
               SizedBox(height: screenHeight * 0.02),
             ],
           ),
-        )
-            : _getPage(_currentIndex),
-      ),
-      bottomNavigationBar: CustomBottomNavBar(
-        currentIndex: _currentIndex,
-        onTap: _onTabTapped,
+        ),
       ),
     );
-  }
-
-  Widget _getPage(int index) {
-    switch (index) {
-      case 1:
-        return const CalculatorScreen();
-      case 2:
-        return const SettingsScreen();
-      case 3:
-        return const ProfileScreen();
-      default:
-        return const SizedBox.shrink();
-    }
   }
 }
