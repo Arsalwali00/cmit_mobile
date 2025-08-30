@@ -1,0 +1,52 @@
+name: cmit
+description: A new Flutter project.
+publish_to: none
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.5.3
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  localstorage: ^5.0.0
+  dio: ^5.8.0+1
+  shared_preferences: ^2.5.2
+  intl_phone_field: ^3.2.0
+  flutter_otp_text_field: ^1.4.0+2
+  flutter_secure_storage: ^9.2.4
+  local_auth: ^2.3.0
+  qr_flutter: ^4.1.0
+  share_plus: ^7.2.2
+  printing: ^5.12.0
+  barcode_widget: ^2.0.4
+  image_picker: ^1.0.0
+  google_fonts: ^6.2.1
+  http: ^1.2.2 # For API calls
+  google_sign_in: ^6.2.1 # For Google login
+  sign_in_with_apple: ^6.1.1 # For Apple login
+  flutter_facebook_auth: ^7.1.0 # For Facebook login
+  lottie: ^3.3.1
+  smooth_page_indicator: ^1.2.1
+
+
+
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/images/splash/
+    - assets/images/onboarding/
+    - assets/images/auth/
+    - assets/images/home/arslan.jpg
+    - assets/images/police/
+    - assets/lottie/
+    - assets/icons/
+    - assets/images/card/
