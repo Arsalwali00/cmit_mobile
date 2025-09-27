@@ -28,9 +28,9 @@ class CustomBottomNavBar extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
           _buildNavItem(Icons.home, "Home", 0),
-          _buildNavItem(Icons.calculate, "Statistics", 1), // Changed from Calculator
-          _buildNavItem(Icons.favorite, "Favourite", 2), // Changed from TrackTribe
-          _buildNavItem(Icons.person, "Profile", 3), // Updated index from 4 to 3
+          _buildNavItem(Icons.question_answer, "Inquiries", 1),
+          _buildNavItem(Icons.local_activity, "Activities", 2),
+          _buildNavItem(Icons.person, "Profile", 3),
         ],
       ),
     );
@@ -49,7 +49,7 @@ class CustomBottomNavBar extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
             decoration: isSelected
                 ? BoxDecoration(
-              color: Colors.teal[400], // Teal background for selected item
+              color: const Color(0xFF014323), // Updated to custom color
               borderRadius: BorderRadius.circular(20),
             )
                 : null,
@@ -81,7 +81,7 @@ class CustomBottomNavBar extends StatelessWidget {
               width: 20,
               height: 3,
               decoration: BoxDecoration(
-                color: Colors.teal[400], // Teal indicator below selected item
+                color: const Color(0xFF014323), // Updated to custom color
                 borderRadius: BorderRadius.circular(2),
               ),
             ),

@@ -6,12 +6,20 @@ class ActivitiesScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white, // body background color
       appBar: AppBar(
-        title: const Text("Activities"),
+        title: const Text(
+          "Activities",
+          style: TextStyle(
+            color: Colors.black, // ensure title is visible
+            fontWeight: FontWeight.w600,
+          ),
+        ),
         centerTitle: true,
         elevation: 0,
-        backgroundColor: Colors.white,
+        backgroundColor: Colors.white, // appbar background
         foregroundColor: Colors.black,
+        automaticallyImplyLeading: false, // no back button
       ),
       body: ListView(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -47,6 +55,7 @@ class ActivitiesScreen extends StatelessWidget {
         style: const TextStyle(
           fontSize: 16,
           fontWeight: FontWeight.bold,
+          color: Colors.black, // adjusted for white background
         ),
       ),
     );
@@ -54,7 +63,7 @@ class ActivitiesScreen extends StatelessWidget {
 
   Widget buildActivity(String time, String description) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         children: [
           SizedBox(
@@ -63,14 +72,17 @@ class ActivitiesScreen extends StatelessWidget {
               time,
               style: const TextStyle(
                 fontSize: 13,
-                color: Colors.grey,
+                color: Colors.grey, // softer look
               ),
             ),
           ),
           Expanded(
             child: Text(
               description,
-              style: const TextStyle(fontSize: 14),
+              style: const TextStyle(
+                fontSize: 14,
+                color: Colors.black, // make text visible on white
+              ),
             ),
           ),
         ],

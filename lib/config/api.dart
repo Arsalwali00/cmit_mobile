@@ -1,7 +1,9 @@
 class ApiConfig {
   // Centralized base URL - change this when needed
-  static const String _baseUrl = "http://192.168.18.33:8000";
-  static const String assetBaseUrl = "$_baseUrl"; // For assets like department_logo
+  static const String _baseUrl = "https://cmit.sata.pk/api/v1";
+
+  // For assets like department_logo
+  static const String assetBaseUrl = "$_baseUrl";
 
   // Full API base URL
   static const String baseApiUrl = _baseUrl;
@@ -9,9 +11,9 @@ class ApiConfig {
 
 class API {
   // 🔹 Authentication Endpoints
-  static const String login = "${ApiConfig.baseApiUrl}/api/login";
-  static const String logout = "${ApiConfig.baseApiUrl}/api/logout";
+  static const String login = "${ApiConfig.baseApiUrl}/login";
+  static const String logout = "${ApiConfig.baseApiUrl}/logout";
 
   // 🔹 Calculator Endpoint
-  static const String calculator = "${ApiConfig.baseApiUrl}/api/calculator";
+  static const String calculator = "${ApiConfig.baseApiUrl}/activity";
 }

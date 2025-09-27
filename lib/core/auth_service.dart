@@ -4,7 +4,7 @@ import 'package:cmit/features/auth/model/login_model.dart';
 import 'package:cmit/config/api.dart';
 
 class AuthService {
-  /// ✅ **User Login (Updated for API Response Structure)**
+  /// ✅ **User Login (Updated for Nested API Response Structure)**
   static Future<Map<String, dynamic>> login(LoginModel user) async {
     try {
       final response = await ApiService.post(
@@ -19,30 +19,37 @@ class AuthService {
       if (response['success'] == true && response.containsKey('data')) {
         final responseData = response['data'];
 
-        // ✅ Extract user and token directly (no nested 'status' or 'data')
-        final userData = responseData['user'];
-        final token = responseData['token'];
+        // ✅ Extract user and token from nested structure
+        if (responseData['status'] == true && responseData.containsKey('data') && responseData.containsKey('token')) {
+          final userData = responseData['data'] as Map<String, dynamic>;
+          final token = responseData['token'] as String;
 
-        // ✅ Save token & user details
-        await LocalStorage.saveToken(token);
-        await LocalStorage.saveUser(userData);
+          // ✅ Save token & user details
+          await LocalStorage.saveToken(token);
+          await LocalStorage.saveUser(userData);
 
-        return {
-          'success': true,
-          'message': responseData['message'] ?? "Login successful",
-          'token': token,
-          'user': userData,
-        };
+          return {
+            'success': true,
+            'message': responseData['message'] ?? "Login successful",
+            'token': token,
+            'user': userData,
+          };
+        } else {
+          return {
+            'success': false,
+            'message': responseData['message'] ?? "Invalid response structure from server."
+          };
+        }
       }
 
       // Handle failure case
       return {
         'success': false,
-        'message': response['data']?['message'] ?? "Invalid email or password."
+        'message': response['message'] ?? "Invalid email or password."
       };
-    } catch (e) {
-      print("❌ AuthService: Login Error - $e");
-      return {'success': false, 'message': "A network error occurred. Try again."};
+    } catch (e, stackTrace) {
+      print("❌ AuthService: Login Error - $e\nStackTrace: $stackTrace");
+      return {'success': false, 'message': "A network error occurred. Please try again."};
     }
   }
 

@@ -1,10 +1,50 @@
 import 'package:flutter/material.dart';
 import 'package:cmit/features/home/widgets/home_top_section.dart';
 import 'package:cmit/features/home/view/custom_drawer.dart';
-import 'package:cmit/features/home/view/notification_screen.dart'; // ✅ Import notification screen
+import 'package:cmit/features/home/view/notification_screen.dart';
+import 'package:cmit/features/inquiries/view/inquiries_screen.dart';
+import 'package:cmit/features/activity/view/activity_screen.dart';
+import 'package:cmit/features/home/view/edit_profile_screen.dart';
+import 'package:cmit/features/home/widgets/custom_bottom_nav_bar.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
+  @override
+  _HomeScreenState createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  int _currentIndex = 0;
+
+  void _onTabTapped(int index) {
+    setState(() {
+      _currentIndex = index;
+    });
+  }
+
+  Widget _getPage(int index) {
+    switch (index) {
+      case 0:
+        return SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const HomeTopSection(),
+              SizedBox(height: MediaQuery.of(context).size.height * 0.02),
+            ],
+          ),
+        );
+      case 1:
+        return const InquiriesScreen();
+      case 2:
+        return const ActivitiesScreen();
+      case 3:
+        return const EditProfileScreen();
+      default:
+        return const SizedBox.shrink();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -12,7 +52,9 @@ class HomeScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
+      // Conditionally show AppBar only when _currentIndex is 0 (Home tab)
+      appBar: _currentIndex == 0
+          ? AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: Builder(
@@ -45,18 +87,15 @@ class HomeScreen extends StatelessWidget {
             },
           ),
         ],
-      ),
+      )
+          : null, // No AppBar for other tabs
       drawer: const CustomDrawer(),
       body: SafeArea(
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const HomeTopSection(),
-              SizedBox(height: screenHeight * 0.02),
-            ],
-          ),
-        ),
+        child: _getPage(_currentIndex),
+      ),
+      bottomNavigationBar: CustomBottomNavBar(
+        currentIndex: _currentIndex,
+        onTap: _onTabTapped,
       ),
     );
   }

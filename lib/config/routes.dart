@@ -4,7 +4,7 @@ import 'package:cmit/features/auth/view/login_screen.dart';
 import 'package:cmit/features/auth/view/onboarding_screen.dart'; // Updated to OnboardingScreen
 import 'package:cmit/features/auth/view/signup_screen.dart';
 import 'package:cmit/features/home/view/home_screen.dart';
-import 'package:cmit/features/bills/view/running_screen.dart';
+
 import 'package:cmit/features/profile/view/profile_screen.dart';
 import 'package:cmit/features/profile/view/edit_profile_screen.dart';
 
@@ -34,7 +34,7 @@ class Routes {
       login: (context) => LoginScreen(),
       signup: (context) => SignUpScreen(),
       home: (context) => HomeScreen(),
-      bookings: (context) => RunningScreen(),
+
       profile: (context) => ProfileScreen(),
       editProfile: (context) => EditProfileScreen(),
     };
@@ -58,7 +58,7 @@ class Routes {
       case Routes.securitySettings:
       case Routes.favorites:
       case Routes.bookings:
-        return MaterialPageRoute(builder: (_) => RunningScreen());
+
       case Routes.profile:
         return MaterialPageRoute(builder: (_) => ProfileScreen());
       case Routes.editProfile:

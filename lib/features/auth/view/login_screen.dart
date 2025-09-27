@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cmit/config/routes.dart';
+import 'package:cmit/features/auth/model/login_model.dart';
+import 'package:cmit/features/auth/presenter/auth_presenter.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -12,10 +14,12 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  final AuthPresenter _authPresenter = AuthPresenter();
 
-  bool _isEmailLogin = true; // ✅ Toggle between Email & CNIC
+  bool _isEmailLogin = true;
   bool _obscurePassword = true;
   bool _rememberMe = false;
+  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -24,14 +28,55 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  /// ✅ Dummy Login
-  void _login() {
+  /// ✅ Handle Login with AuthPresenter
+  Future<void> _login() async {
     if (_formKey.currentState!.validate()) {
-      Navigator.pushNamedAndRemoveUntil(
-        context,
-        Routes.home,
-            (route) => false,
+      setState(() {
+        _isLoading = true;
+      });
+
+      // Create LoginModel instance
+      final loginModel = LoginModel(
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
+        isEmailLogin: _isEmailLogin,
       );
+
+      // Call AuthPresenter login
+      final response = await _authPresenter.login(
+        loginModel,
+        rememberMe: _rememberMe,
+      );
+
+      setState(() {
+        _isLoading = false;
+      });
+
+      // Handle response
+      if (response['success'] == true) {
+        if (mounted) {
+          Navigator.pushNamedAndRemoveUntil(
+            context,
+            Routes.home,
+                (route) => false,
+          );
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(response['message'] ?? "Login successful!"),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(response['message'] ?? "Login failed. Please try again."),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
     }
   }
 
@@ -91,8 +136,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           backgroundColor: _isEmailLogin
                               ? Colors.green[900]
                               : Colors.transparent,
-                          foregroundColor:
-                          _isEmailLogin ? Colors.white : Colors.black,
+                          foregroundColor: _isEmailLogin ? Colors.white : Colors.black,
                           shadowColor: Colors.transparent,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
@@ -110,8 +154,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           backgroundColor: !_isEmailLogin
                               ? Colors.green[900]
                               : Colors.transparent,
-                          foregroundColor:
-                          !_isEmailLogin ? Colors.white : Colors.black,
+                          foregroundColor: !_isEmailLogin ? Colors.white : Colors.black,
                           shadowColor: Colors.transparent,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
@@ -135,9 +178,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       controller: _emailController,
                       decoration: InputDecoration(
                         labelText: _isEmailLogin ? "Email Address" : "CNIC",
-                        hintText: _isEmailLogin
-                            ? "enter your email"
-                            : "enter your CNIC",
+                        hintText: _isEmailLogin ? "enter your email" : "enter your CNIC",
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
@@ -150,6 +191,12 @@ class _LoginScreenState extends State<LoginScreen> {
                           return _isEmailLogin
                               ? "Please enter your email"
                               : "Please enter your CNIC";
+                        }
+                        if (_isEmailLogin && !RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value)) {
+                          return "Please enter a valid email address";
+                        }
+                        if (!_isEmailLogin && !RegExp(r'^\d{5}-\d{7}-\d$').hasMatch(value)) {
+                          return "Please enter a valid CNIC (e.g., 12345-1234567-1)";
                         }
                         return null;
                       },
@@ -165,18 +212,18 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         suffixIcon: IconButton(
                           icon: Icon(
-                            _obscurePassword
-                                ? Icons.visibility
-                                : Icons.visibility_off,
+                            _obscurePassword ? Icons.visibility : Icons.visibility_off,
                           ),
-                          onPressed: () =>
-                              setState(() => _obscurePassword = !_obscurePassword),
+                          onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
                         ),
                       ),
                       obscureText: _obscurePassword,
                       validator: (value) {
                         if (value == null || value.isEmpty) {
                           return "Please enter your password";
+                        }
+                        if (value.length < 6) {
+                          return "Password must be at least 6 characters";
                         }
                         return null;
                       },
@@ -192,8 +239,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 children: [
                   Checkbox(
                     value: _rememberMe,
-                    onChanged: (value) =>
-                        setState(() => _rememberMe = value ?? false),
+                    onChanged: (value) => setState(() => _rememberMe = value ?? false),
                   ),
                   const Text("Remember me"),
                 ],
@@ -205,7 +251,7 @@ class _LoginScreenState extends State<LoginScreen> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: _login,
+                  onPressed: _isLoading ? null : _login,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.green[900],
                     padding: const EdgeInsets.symmetric(vertical: 16),
@@ -213,7 +259,16 @@ class _LoginScreenState extends State<LoginScreen> {
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),
-                  child: const Text(
+                  child: _isLoading
+                      ? const SizedBox(
+                    height: 20,
+                    width: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    ),
+                  )
+                      : const Text(
                     "Login",
                     style: TextStyle(
                       fontSize: 16,
