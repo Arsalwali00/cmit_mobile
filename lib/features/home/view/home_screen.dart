@@ -4,7 +4,7 @@ import 'package:cmit/features/home/view/custom_drawer.dart';
 import 'package:cmit/features/home/view/notification_screen.dart';
 import 'package:cmit/features/inquiries/view/inquiries_screen.dart';
 import 'package:cmit/features/activity/view/activity_screen.dart';
-import 'package:cmit/features/home/view/edit_profile_screen.dart';
+import 'package:cmit/features/home/view/profile_screen.dart';
 import 'package:cmit/features/home/widgets/custom_bottom_nav_bar.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -40,7 +40,7 @@ class _HomeScreenState extends State<HomeScreen> {
       case 2:
         return const ActivitiesScreen();
       case 3:
-        return const EditProfileScreen();
+        return const ProfileScreen();
       default:
         return const SizedBox.shrink();
     }

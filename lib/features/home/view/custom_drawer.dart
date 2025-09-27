@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'inquiries_screen.dart'; // Import the InquiriesScreen file
 import 'activities_screen.dart'; // Import the ActivitiesScreen file
 import 'settings_screen.dart'; // Import the SettingsScreen file
-import 'edit_profile_screen.dart'; // Import the EditProfileScreen file
+import 'profile_screen.dart'; // Import the EditProfileScreen file
 
 class CustomDrawer extends StatelessWidget {
   const CustomDrawer({super.key});
@@ -20,7 +20,7 @@ class CustomDrawer extends StatelessWidget {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => const EditProfileScreen(), // Navigate to EditProfileScreen
+                  builder: (context) => const ProfileScreen(), // Navigate to EditProfileScreen
                 ),
               );
             },
@@ -80,7 +80,7 @@ class CustomDrawer extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => const EditProfileScreen(), // Navigate to EditProfileScreen
+                        builder: (context) => const ProfileScreen(), // Navigate to EditProfileScreen
                       ),
                     );
                   },

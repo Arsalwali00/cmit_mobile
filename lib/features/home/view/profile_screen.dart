@@ -1,16 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:cmit/config/routes.dart';
 import 'package:cmit/core/auth_service.dart';
-import 'package:cmit/core/local_storage.dart';
 
-class EditProfileScreen extends StatefulWidget {
-  const EditProfileScreen({super.key});
+class ProfileScreen extends StatefulWidget {
+  const ProfileScreen({super.key});
 
   @override
-  State<EditProfileScreen> createState() => _EditProfileScreenState();
+  State<ProfileScreen> createState() => _ProfileScreenState();
 }
 
-class _EditProfileScreenState extends State<EditProfileScreen> {
+class _ProfileScreenState extends State<ProfileScreen> {
   final TextEditingController nameController =
   TextEditingController(text: "Arslan Wali");
   final TextEditingController emailController =
@@ -19,9 +18,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   TextEditingController(text: "03555123123");
   final TextEditingController locationController =
   TextEditingController(text: "Khomar, Gilgit");
-  bool _isLoading = false; // Track loading state for logout
 
-  /// ✅ Handle Logout
+  bool _isEditing = false; // Track edit mode
+  bool _isLoading = false; // Track logout loading
+
+  /// Logout logic
   Future<void> _logout() async {
     setState(() {
       _isLoading = true;
@@ -31,12 +32,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       final success = await AuthService.logout();
       if (success) {
         if (mounted) {
-          // Navigate to LoginScreen and clear navigation stack
           Navigator.pushNamedAndRemoveUntil(
-            context,
-            Routes.login,
-                (route) => false,
-          );
+              context, Routes.login, (route) => false);
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text("Logged out successfully!"),
@@ -55,7 +52,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         }
       }
     } catch (e) {
-      print("❌ EditProfileScreen: Logout Error - $e");
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -73,50 +69,61 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     }
   }
 
+  /// Toggle Edit Mode
+  void _toggleEdit() {
+    setState(() {
+      _isEditing = !_isEditing;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white, // Set white background
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text("Edit Profile"),
+        title: const Text("Profile"),
         centerTitle: true,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.pop(context),
-        ),
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
         elevation: 0,
+        automaticallyImplyLeading: false, // No back button
+        actions: [
+          IconButton(
+            icon: Icon(_isEditing ? Icons.close : Icons.edit, color: Colors.black),
+            onPressed: _toggleEdit,
+          )
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: SingleChildScrollView(
           child: Column(
             children: [
-              // Profile Picture with edit icon
+              // Profile Picture
               Stack(
                 children: [
                   const CircleAvatar(
                     radius: 50,
                     backgroundImage: AssetImage("assets/images/home/arslan.jpg"),
                   ),
-                  Positioned(
-                    bottom: 0,
-                    right: 0,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.green[900], // Match LoginScreen styling
-                      ),
-                      child: IconButton(
-                        icon: const Icon(Icons.camera_alt,
-                            color: Colors.white, size: 20),
-                        onPressed: () {
-                          // TODO: Implement image picker logic
-                        },
+                  if (_isEditing)
+                    Positioned(
+                      bottom: 0,
+                      right: 0,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.green[900],
+                        ),
+                        child: IconButton(
+                          icon: const Icon(Icons.camera_alt,
+                              color: Colors.white, size: 20),
+                          onPressed: () {
+                            // TODO: Implement image picker
+                          },
+                        ),
                       ),
                     ),
-                  ),
                 ],
               ),
               const SizedBox(height: 24),
@@ -124,6 +131,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               // Full Name
               TextField(
                 controller: nameController,
+                readOnly: !_isEditing,
                 decoration: InputDecoration(
                   labelText: "Full Name",
                   border: OutlineInputBorder(
@@ -136,6 +144,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               // Email
               TextField(
                 controller: emailController,
+                readOnly: !_isEditing,
                 keyboardType: TextInputType.emailAddress,
                 decoration: InputDecoration(
                   labelText: "Email",
@@ -149,6 +158,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               // Phone Number
               TextField(
                 controller: phoneController,
+                readOnly: !_isEditing,
                 keyboardType: TextInputType.phone,
                 decoration: InputDecoration(
                   labelText: "Phone number",
@@ -162,6 +172,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               // Location
               TextField(
                 controller: locationController,
+                readOnly: !_isEditing,
                 decoration: InputDecoration(
                   labelText: "Location",
                   border: OutlineInputBorder(
@@ -171,33 +182,36 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               ),
               const SizedBox(height: 24),
 
-              // Save Button
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () {
-                    // TODO: Implement save logic (e.g., update user data)
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("Profile Saved!")),
-                    );
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green[900], // Match LoginScreen styling
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+              // Save Button (only enabled in edit mode)
+              if (_isEditing)
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      setState(() {
+                        _isEditing = false;
+                      });
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text("Profile Saved!")),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green[900],
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                     ),
-                  ),
-                  child: const Text(
-                    "Save",
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
+                    child: const Text(
+                      "Save",
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
                     ),
                   ),
                 ),
-              ),
               const SizedBox(height: 16),
 
               // Logout Button
@@ -206,7 +220,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 child: ElevatedButton(
                   onPressed: _isLoading ? null : _logout,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red[700], // Red to indicate logout action
+                    backgroundColor: Colors.red[700],
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
@@ -218,7 +232,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     width: 20,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      valueColor:
+                      AlwaysStoppedAnimation<Color>(Colors.white),
                     ),
                   )
                       : const Text(
@@ -240,7 +255,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   @override
   void dispose() {
-    // Dispose controllers to prevent memory leaks
     nameController.dispose();
     emailController.dispose();
     phoneController.dispose();
