@@ -140,6 +140,7 @@ class _InquiriesScreenState extends State<InquiriesScreen> {
                             date: inquiry.createdAt,
                             status: inquiry.status,
                             description: inquiry.description,
+                            tors: inquiry.tors,
                             priority: inquiry.priority,
                             inquiryType: inquiry.inquiryType.name,
                             initiator: inquiry.initiator.name,

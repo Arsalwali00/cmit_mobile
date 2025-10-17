@@ -11,6 +11,7 @@ class InquiryDetailsScreen extends StatelessWidget {
   final String date;
   final String status;
   final String description;
+  final String tors;
   final String priority;
   final String inquiryType;
   final String initiator;
@@ -27,6 +28,7 @@ class InquiryDetailsScreen extends StatelessWidget {
     required this.date,
     required this.status,
     required this.description,
+    required this.tors,
     required this.priority,
     required this.inquiryType,
     required this.initiator,
@@ -74,8 +76,6 @@ class InquiryDetailsScreen extends StatelessWidget {
             _buildRecommendationsCard(),
             const SizedBox(height: 12),
             _buildVisitsCard(),
-            const SizedBox(height: 12),
-            _buildDescriptionCard(),
             const SizedBox(height: 24),
           ],
         ),
@@ -104,15 +104,6 @@ class InquiryDetailsScreen extends StatelessWidget {
               fontWeight: FontWeight.bold,
               color: Colors.black87,
               height: 1.3,
-            ),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            'Ref: $ref',
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey[600],
-              fontWeight: FontWeight.w500,
             ),
           ),
           const SizedBox(height: 16),
@@ -171,6 +162,72 @@ class InquiryDetailsScreen extends StatelessWidget {
           _buildInfoRow(Icons.category_outlined, 'Type', inquiryType),
           _buildDivider(),
           _buildInfoRow(Icons.assignment_ind_outlined, 'Assigned To', assignedTo),
+
+          const SizedBox(height: 24),
+          _buildDivider(),
+          const SizedBox(height: 20),
+
+          // Description Section
+          Row(
+            children: [
+              Icon(Icons.description_outlined, size: 20, color: Colors.blue[700]),
+              const SizedBox(width: 10),
+              const Text(
+                'Description',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black87,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Html(
+            data: description,
+            style: {
+              "body": Style(
+                margin: Margins.zero,
+                padding: HtmlPaddings.zero,
+                fontSize: FontSize(15),
+                lineHeight: const LineHeight(1.6),
+                color: Colors.black87,
+              ),
+            },
+          ),
+
+          const SizedBox(height: 24),
+          _buildDivider(),
+          const SizedBox(height: 20),
+
+          // Terms of Reference Section
+          Row(
+            children: [
+              Icon(Icons.article_outlined, size: 20, color: Colors.blue[700]),
+              const SizedBox(width: 10),
+              const Text(
+                'Terms of Reference',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black87,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Html(
+            data: tors,
+            style: {
+              "body": Style(
+                margin: Margins.zero,
+                padding: HtmlPaddings.zero,
+                fontSize: FontSize(15),
+                lineHeight: const LineHeight(1.6),
+                color: Colors.black87,
+              ),
+            },
+          ),
         ],
       ),
     );
@@ -269,26 +326,6 @@ class InquiryDetailsScreen extends StatelessWidget {
             ),
           );
         }).toList(),
-      ),
-    );
-  }
-
-  /// Builds the description card.
-  Widget _buildDescriptionCard() {
-    return _buildSectionCard(
-      title: 'Description',
-      icon: Icons.description_outlined,
-      child: Html(
-        data: description,
-        style: {
-          "body": Style(
-            margin: Margins.zero,
-            padding: HtmlPaddings.zero,
-            fontSize: FontSize(15),
-            lineHeight: const LineHeight(1.6),
-            color: Colors.black87,
-          ),
-        },
       ),
     );
   }
