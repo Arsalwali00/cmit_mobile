@@ -74,4 +74,50 @@ class ApiService {
       return {'success': false, 'message': "An unexpected error occurred."};
     }
   }
+
+  /// ✅ **GET Request with Enhanced Error Handling**
+  static Future<Map<String, dynamic>> get(
+      String endpoint,
+      {bool withAuth = true}
+      ) async {
+    try {
+      print("📤 Sending GET Request to: $endpoint");
+
+      Response response = await _dio.get(
+        endpoint,
+        options: Options(headers: await _getHeaders(withAuth: withAuth)),
+      );
+
+      print("✅ Success! Response: ${response.data}");
+      return {'success': true, 'data': response.data};
+    } on DioException catch (e) {
+      // 🔹 API responded but with an error
+      if (e.response != null) {
+        print("❌ API Error [${e.response?.statusCode}]: ${e.response?.data}");
+        return {
+          'success': false,
+          'message': e.response?.data['message'] ?? "Something went wrong",
+          'status': e.response?.statusCode,
+        };
+      }
+
+      // 🔹 Handle Network/Connection Errors
+      else if (e.type == DioExceptionType.connectionTimeout) {
+        print("❌ Connection Timeout Error: ${e.message}");
+        return {'success': false, 'message': "Connection timeout. Please try again."};
+      } else if (e.type == DioExceptionType.receiveTimeout) {
+        print("❌ Receive Timeout Error: ${e.message}");
+        return {'success': false, 'message': "Server took too long to respond."};
+      } else if (e.type == DioExceptionType.badCertificate || e.type == DioExceptionType.badResponse) {
+        print("❌ SSL or Bad Response Error: ${e.message}");
+        return {'success': false, 'message': "Security error: Invalid SSL certificate or bad response."};
+      } else {
+        print("❌ Network Error: ${e.message}");
+        return {'success': false, 'message': "Network issue: Please check your internet connection."};
+      }
+    } catch (e) {
+      print("❌ Unexpected Error: $e");
+      return {'success': false, 'message': "An unexpected error occurred."};
+    }
+  }
 }

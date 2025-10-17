@@ -14,6 +14,6 @@ class API {
   static const String login = "${ApiConfig.baseApiUrl}/login";
   static const String logout = "${ApiConfig.baseApiUrl}/logout";
 
-  // 🔹 Calculator Endpoint
-  static const String calculator = "${ApiConfig.baseApiUrl}/activity";
+  // 🔹 Inquiry Endpoint
+  static const String assignToMe = "${ApiConfig.baseApiUrl}/get/inquiry/assigned-to-me";
 }
