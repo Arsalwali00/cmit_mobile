@@ -47,7 +47,6 @@ class AssignToMeModel {
     required this.assignedTo,
   });
 
-  /// ✅ Convert Model to JSON
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -74,7 +73,6 @@ class AssignToMeModel {
     };
   }
 
-  /// ✅ Factory Constructor to Map API Response
   factory AssignToMeModel.fromJson(Map<String, dynamic> json) {
     return AssignToMeModel(
       id: int.parse(json['id'].toString()),

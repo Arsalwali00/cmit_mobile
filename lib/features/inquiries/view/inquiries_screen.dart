@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:cmit/core/assign_to_me.dart';
+import 'package:cmit/core/inquiry_utils.dart'; // Import the helper function
+import 'package:cmit/features/inquiries/view/inquiry_card.dart'; // Import the InquiryCard widget
 import 'package:cmit/features/home/model/assign_to_me_model.dart';
-import 'package:cmit/features/inquiries/view/inquiry_details_screen.dart'; // Import the InquiryDetailsScreen
+import 'package:cmit/features/inquiries/view/inquiry_details_screen.dart';
 
 class InquiriesScreen extends StatefulWidget {
   const InquiriesScreen({super.key});
@@ -109,14 +111,25 @@ class _InquiriesScreenState extends State<InquiriesScreen> {
                 itemCount: filteredInquiries.length,
                 itemBuilder: (context, index) {
                   final inquiry = filteredInquiries[index];
+                  // Use helper function for formatting
+                  final formattedDetails = InquiryUtils.formatInquiryDetails(
+                    status: inquiry.status,
+                    priority: inquiry.priority,
+                    date: inquiry.createdAt,
+                  );
                   return InquiryCard(
-                    ref: inquiry.inquiryRequestId,
+
                     title: inquiry.title,
                     department: inquiry.department.name,
-                    date: inquiry.createdAt.split('T')[0],
-                    status: _mapStatus(inquiry.status),
+                    date: formattedDetails['formattedDate'],
+                    status: formattedDetails['statusText'],
+                    statusBackgroundColor: formattedDetails['statusBackgroundColor'],
+                    statusTextColor: formattedDetails['statusTextColor'],
+                    priority: formattedDetails['priorityText'],
+                    inquiryType: inquiry.inquiryType.name,
+                    initiator: inquiry.initiator.name,
+                    assignedTo: inquiry.assignedTo.name,
                     onTap: () {
-                      // Navigate to InquiryDetailsScreen
                       Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -125,9 +138,12 @@ class _InquiriesScreenState extends State<InquiriesScreen> {
                             title: inquiry.title,
                             dept: inquiry.department.name,
                             assignedTo: inquiry.assignedTo.name,
-                            date: inquiry.createdAt.split('T')[0],
-                            status: _mapStatus(inquiry.status),
+                            date: inquiry.createdAt,
+                            status: inquiry.status,
                             description: inquiry.description,
+                            priority: inquiry.priority,
+                            inquiryType: inquiry.inquiryType.name,
+                            initiator: inquiry.initiator.name,
                           ),
                         ),
                       );
@@ -137,136 +153,6 @@ class _InquiriesScreenState extends State<InquiriesScreen> {
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-
-  /// Map status code to display text
-  String _mapStatus(String status) {
-    switch (status) {
-      case '1':
-        return 'Open';
-      case '2':
-        return 'In Progress';
-      case '3':
-        return 'Closed';
-      default:
-        return 'Unknown';
-    }
-  }
-}
-
-// 🔹 Reusable Inquiry Card
-class InquiryCard extends StatelessWidget {
-  final String ref;
-  final String title;
-  final String department;
-  final String date;
-  final String status;
-  final VoidCallback? onTap; // Added onTap callback
-
-  const InquiryCard({
-    super.key,
-    required this.ref,
-    required this.title,
-    required this.department,
-    required this.date,
-    required this.status,
-    this.onTap, // Optional onTap parameter
-  });
-
-  Color _getStatusColor() {
-    switch (status) {
-      case 'Open':
-        return Colors.green.shade100;
-      case 'In Progress':
-        return Colors.orange.shade100;
-      case 'Closed':
-        return Colors.purple.shade100;
-      default:
-        return Colors.grey.shade300;
-    }
-  }
-
-  Color _getTextColor() {
-    switch (status) {
-      case 'Open':
-        return Colors.green;
-      case 'In Progress':
-        return Colors.orange;
-      case 'Closed':
-        return Colors.purple;
-      default:
-        return Colors.black;
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap, // Handle tap to navigate
-      child: Card(
-        margin: const EdgeInsets.only(bottom: 12),
-        color: Colors.white,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
-          side: const BorderSide(color: Colors.black, width: 1),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Ref + Status Chip
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    ref,
-                    style: TextStyle(
-                      color: Colors.green[700],
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  Container(
-                    padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: _getStatusColor(),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      status,
-                      style: TextStyle(
-                        color: _getTextColor(),
-                        fontWeight: FontWeight.w500,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 6),
-
-              // Title
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black,
-                ),
-              ),
-              const SizedBox(height: 4),
-
-              // Department + Date
-              Text(
-                "$department : Created on $date",
-                style: TextStyle(color: Colors.grey[600], fontSize: 13),
-              ),
-            ],
-          ),
         ),
       ),
     );

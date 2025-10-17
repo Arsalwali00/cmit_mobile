@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_html/flutter_html.dart';
+import 'package:cmit/core/inquiry_utils.dart'; // Import the helper function
 
 class InquiryDetailsScreen extends StatelessWidget {
   final String ref;
@@ -8,6 +10,9 @@ class InquiryDetailsScreen extends StatelessWidget {
   final String date;
   final String status;
   final String description;
+  final String priority;
+  final String inquiryType;
+  final String initiator;
 
   const InquiryDetailsScreen({
     super.key,
@@ -18,10 +23,20 @@ class InquiryDetailsScreen extends StatelessWidget {
     required this.date,
     required this.status,
     required this.description,
+    required this.priority,
+    required this.inquiryType,
+    required this.initiator,
   });
 
   @override
   Widget build(BuildContext context) {
+    // Use the helper function to format status, priority, and date
+    final formattedDetails = InquiryUtils.formatInquiryDetails(
+      status: status,
+      priority: priority,
+      date: date,
+    );
+
     return Scaffold(
       appBar: AppBar(
         elevation: 0,
@@ -69,7 +84,48 @@ class InquiryDetailsScreen extends StatelessWidget {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
+                const SizedBox(height: 8),
+
+                // Priority
+                Text(
+                  formattedDetails['priorityText'],
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 8),
+
+                // Date
+                Text(
+                  formattedDetails['formattedDate'],
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey,
+                  ),
+                ),
                 const SizedBox(height: 16),
+
+                // Authority (Initiator)
+                _buildInfoRow("Authority", initiator),
+
+                const Divider(height: 24),
+
+                // Department
+                _buildInfoRow("Dept", dept),
+
+                const Divider(height: 24),
+
+                // Type (Inquiry Type)
+                _buildInfoRow("Type", inquiryType),
+
+                const Divider(height: 24),
+
+                // Submitted to (Assigned to)
+                _buildInfoRow("Submitted to", assignedTo),
+
+                const Divider(height: 24),
 
                 // Status
                 Row(
@@ -83,34 +139,19 @@ class InquiryDetailsScreen extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
-                        color: _getStatusColor(),
+                        color: formattedDetails['statusBackgroundColor'],
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
-                        status,
+                        formattedDetails['statusText'],
                         style: TextStyle(
-                          color: _getTextColor(),
+                          color: formattedDetails['statusTextColor'],
                           fontWeight: FontWeight.w600,
                         ),
                       ),
                     ),
                   ],
                 ),
-                const Divider(height: 24),
-
-                // Department
-                _buildInfoRow("Department", dept),
-
-                const Divider(height: 24),
-
-                // Assigned to
-                _buildInfoRow("Assigned to", assignedTo),
-
-                const Divider(height: 24),
-
-                // Date Created
-                _buildInfoRow("Date Created", date),
-
                 const Divider(height: 24),
 
                 // Description
@@ -122,9 +163,14 @@ class InquiryDetailsScreen extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 6),
-                Text(
-                  description,
-                  style: const TextStyle(color: Colors.black87, height: 1.4),
+                Html(
+                  data: description,
+                  style: {
+                    "body": Style(
+                      color: Colors.black87,
+                      lineHeight: const LineHeight(1.4),
+                    ),
+                  },
                 ),
               ],
             ),
@@ -139,42 +185,17 @@ class InquiryDetailsScreen extends StatelessWidget {
     return Row(
       children: [
         Text(
-          title,
+          "$title:",
           style: const TextStyle(fontWeight: FontWeight.w500),
         ),
-        const Spacer(),
-        Text(
-          value,
-          style: const TextStyle(fontWeight: FontWeight.w600),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            value,
+            style: const TextStyle(fontWeight: FontWeight.w600),
+          ),
         ),
       ],
     );
-  }
-
-  // Match status colors with InquiriesScreen
-  Color _getStatusColor() {
-    switch (status) {
-      case 'Open':
-        return Colors.green.shade100;
-      case 'In Progress':
-        return Colors.orange.shade100;
-      case 'Closed':
-        return Colors.purple.shade100;
-      default:
-        return Colors.grey.shade300;
-    }
-  }
-
-  Color _getTextColor() {
-    switch (status) {
-      case 'Open':
-        return Colors.green;
-      case 'In Progress':
-        return Colors.orange;
-      case 'Closed':
-        return Colors.purple;
-      default:
-        return Colors.black;
-    }
   }
 }
