@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_html/flutter_html.dart';
 import 'package:cmit/core/inquiry_utils.dart';
+import 'add_recommendations.dart';
+import 'add_visits.dart';
 
 /// Screen to display detailed information about an inquiry.
-class InquiryDetailsScreen extends StatelessWidget {
+class InquiryDetailsScreen extends StatefulWidget {
   final String ref;
   final String title;
   final String dept;
@@ -38,11 +40,52 @@ class InquiryDetailsScreen extends StatelessWidget {
   });
 
   @override
+  State<InquiryDetailsScreen> createState() => _InquiryDetailsScreenState();
+}
+
+class _InquiryDetailsScreenState extends State<InquiryDetailsScreen> {
+  late List<dynamic> _recommendations;
+  late List<dynamic> _visits;
+
+  @override
+  void initState() {
+    super.initState();
+    _recommendations = List.from(widget.recommendations);
+    _visits = List.from(widget.visits);
+  }
+
+  void _addRecommendation() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AddRecommendationScreen(
+          onAddRecommendation: (recommendation) {
+            setState(() => _recommendations.add(recommendation));
+          },
+        ),
+      ),
+    );
+  }
+
+  void _addVisit() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AddVisitsScreen(
+          onAddVisit: (visit) {
+            setState(() => _visits.add(visit));
+          },
+        ),
+      ),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
     final formattedDetails = InquiryUtils.formatInquiryDetails(
-      status: status,
-      priority: priority,
-      date: date,
+      status: widget.status,
+      priority: widget.priority,
+      date: widget.date,
     );
 
     return Scaffold(
@@ -98,7 +141,7 @@ class InquiryDetailsScreen extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            title,
+            widget.title,
             style: const TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.bold,
@@ -111,12 +154,12 @@ class InquiryDetailsScreen extends StatelessWidget {
             children: [
               _buildStatusBadge(
                 formattedDetails['statusText'] as String,
-                _getStatusColor(status),
+                _getStatusColor(widget.status),
               ),
               const SizedBox(width: 12),
               _buildPriorityBadge(
                 formattedDetails['priorityText'] as String,
-                _getPriorityColor(priority),
+                _getPriorityColor(widget.priority),
               ),
             ],
           ),
@@ -155,19 +198,16 @@ class InquiryDetailsScreen extends StatelessWidget {
           const SizedBox(height: 16),
           _buildInfoRow(Icons.calendar_today, 'Date', formattedDetails['formattedDate'] as String),
           _buildDivider(),
-          _buildInfoRow(Icons.person_outline, 'Authority', initiator),
+          _buildInfoRow(Icons.person_outline, 'Authority', widget.initiator),
           _buildDivider(),
-          _buildInfoRow(Icons.business, 'Department', dept),
+          _buildInfoRow(Icons.business, 'Department', widget.dept),
           _buildDivider(),
-          _buildInfoRow(Icons.category_outlined, 'Type', inquiryType),
+          _buildInfoRow(Icons.category_outlined, 'Type', widget.inquiryType),
           _buildDivider(),
-          _buildInfoRow(Icons.assignment_ind_outlined, 'Assigned To', assignedTo),
-
+          _buildInfoRow(Icons.assignment_ind_outlined, 'Assigned To', widget.assignedTo),
           const SizedBox(height: 24),
           _buildDivider(),
           const SizedBox(height: 20),
-
-          // Description Section
           Row(
             children: [
               Icon(Icons.description_outlined, size: 20, color: Colors.blue[700]),
@@ -184,7 +224,7 @@ class InquiryDetailsScreen extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Html(
-            data: description,
+            data: widget.description,
             style: {
               "body": Style(
                 margin: Margins.zero,
@@ -195,12 +235,9 @@ class InquiryDetailsScreen extends StatelessWidget {
               ),
             },
           ),
-
           const SizedBox(height: 24),
           _buildDivider(),
           const SizedBox(height: 20),
-
-          // Terms of Reference Section
           Row(
             children: [
               Icon(Icons.article_outlined, size: 20, color: Colors.blue[700]),
@@ -217,7 +254,7 @@ class InquiryDetailsScreen extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Html(
-            data: tors,
+            data: widget.tors,
             style: {
               "body": Style(
                 margin: Margins.zero,
@@ -238,12 +275,12 @@ class InquiryDetailsScreen extends StatelessWidget {
     return _buildSectionCard(
       title: 'Team Members',
       icon: Icons.group_outlined,
-      child: teamMembers.isEmpty
+      child: widget.teamMembers.isEmpty
           ? _buildEmptyState('No team members assigned')
           : Wrap(
         spacing: 8,
         runSpacing: 8,
-        children: teamMembers.map((member) => _buildChip(member)).toList(),
+        children: widget.teamMembers.map((member) => _buildChip(member)).toList(),
       ),
     );
   }
@@ -253,11 +290,13 @@ class InquiryDetailsScreen extends StatelessWidget {
     return _buildSectionCard(
       title: 'Recommendations',
       icon: Icons.lightbulb_outline,
-      child: recommendations.isEmpty
+      showAddButton: true,
+      onAddPressed: _addRecommendation,
+      child: _recommendations.isEmpty
           ? _buildEmptyState('No recommendations available')
           : Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: recommendations.asMap().entries.map((entry) {
+        children: _recommendations.asMap().entries.map((entry) {
           return Padding(
             padding: const EdgeInsets.only(bottom: 12),
             child: Row(
@@ -296,11 +335,13 @@ class InquiryDetailsScreen extends StatelessWidget {
     return _buildSectionCard(
       title: 'Visits',
       icon: Icons.location_on_outlined,
-      child: visits.isEmpty
+      showAddButton: true,
+      onAddPressed: _addVisit,
+      child: _visits.isEmpty
           ? _buildEmptyState('No visits recorded')
           : Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: visits.asMap().entries.map((entry) {
+        children: _visits.asMap().entries.map((entry) {
           return Container(
             margin: const EdgeInsets.only(bottom: 8),
             padding: const EdgeInsets.all(12),
@@ -335,6 +376,8 @@ class InquiryDetailsScreen extends StatelessWidget {
     required String title,
     required IconData icon,
     required Widget child,
+    bool showAddButton = false,
+    VoidCallback? onAddPressed,
   }) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
@@ -354,17 +397,39 @@ class InquiryDetailsScreen extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Icon(icon, size: 22, color: Colors.blue[700]),
-              const SizedBox(width: 10),
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black87,
-                ),
+              Row(
+                children: [
+                  Icon(icon, size: 22, color: Colors.blue[700]),
+                  const SizedBox(width: 10),
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black87,
+                    ),
+                  ),
+                ],
               ),
+              if (showAddButton)
+                GestureDetector(
+                  onTap: onAddPressed,
+                  child: Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: Colors.blue[50],
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.blue[200]!),
+                    ),
+                    child: Icon(
+                      Icons.add,
+                      size: 20,
+                      color: Colors.blue[700],
+                    ),
+                  ),
+                ),
             ],
           ),
           const SizedBox(height: 16),
