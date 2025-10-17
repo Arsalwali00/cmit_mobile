@@ -3,6 +3,7 @@ import 'package:flutter_html/flutter_html.dart';
 import 'package:cmit/core/inquiry_utils.dart';
 import 'add_recommendations.dart';
 import 'add_visits.dart';
+import 'requested_documents.dart';
 
 /// Screen to display detailed information about an inquiry.
 class InquiryDetailsScreen extends StatefulWidget {
@@ -46,12 +47,14 @@ class InquiryDetailsScreen extends StatefulWidget {
 class _InquiryDetailsScreenState extends State<InquiryDetailsScreen> {
   late List<dynamic> _recommendations;
   late List<dynamic> _visits;
+  late List<dynamic> _documents; // Added for documents state
 
   @override
   void initState() {
     super.initState();
     _recommendations = List.from(widget.recommendations);
     _visits = List.from(widget.visits);
+    _documents = []; // Initialize empty documents list (replace with widget.documents if available)
   }
 
   void _addRecommendation() {
@@ -72,8 +75,22 @@ class _InquiryDetailsScreenState extends State<InquiryDetailsScreen> {
       context,
       MaterialPageRoute(
         builder: (context) => AddVisitsScreen(
-          onAddVisit: (visit) {
-            setState(() => _visits.add(visit));
+          onAddVisit: (visitData) {
+            final visitSummary = 'Date: ${visitData['date']}, Time: ${visitData['time']}, Driver: ${visitData['driver']}, Vehicle: ${visitData['vehicle']}, Findings: ${visitData['findings']}';
+            setState(() => _visits.add(visitData));
+          },
+        ),
+      ),
+    );
+  }
+
+  void _addDocument() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => RequestedDocumentsScreen(
+          onAddDocument: (document) {
+            setState(() => _documents.add(document));
           },
         ),
       ),
@@ -119,6 +136,8 @@ class _InquiryDetailsScreenState extends State<InquiryDetailsScreen> {
             _buildRecommendationsCard(),
             const SizedBox(height: 12),
             _buildVisitsCard(),
+            const SizedBox(height: 12),
+            _buildRequestedDocumentsCard(),
             const SizedBox(height: 24),
           ],
         ),
@@ -342,17 +361,88 @@ class _InquiryDetailsScreenState extends State<InquiryDetailsScreen> {
           : Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: _visits.asMap().entries.map((entry) {
+          final visitData = entry.value is Map ? entry.value as Map<String, String> : {};
           return Container(
-            margin: const EdgeInsets.only(bottom: 8),
+            margin: const EdgeInsets.only(bottom: 12),
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               color: Colors.grey[50],
               borderRadius: BorderRadius.circular(8),
               border: Border.all(color: Colors.grey[200]!),
             ),
-            child: Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.check_circle, color: Colors.green[600], size: 20),
+                Row(
+                  children: [
+                    Icon(Icons.check_circle, color: Colors.green[600], size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Visit ${entry.key + 1}',
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black87,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                if (visitData.isNotEmpty)
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildVisitInfoRow('Date', visitData['date'] ?? ''),
+                      _buildVisitInfoRow('Time', visitData['time'] ?? ''),
+                      _buildVisitInfoRow('Driver', visitData['driver'] ?? ''),
+                      _buildVisitInfoRow('Vehicle', visitData['vehicle'] ?? ''),
+                      _buildVisitInfoRow('Findings', visitData['findings'] ?? ''),
+                    ],
+                  )
+                else
+                  Text(
+                    entry.value.toString(),
+                    style: const TextStyle(
+                      fontSize: 15,
+                      color: Colors.black87,
+                    ),
+                  ),
+              ],
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  /// Builds the requested documents card.
+  Widget _buildRequestedDocumentsCard() {
+    return _buildSectionCard(
+      title: 'Requested Documents',
+      icon: Icons.description_outlined,
+      showAddButton: true,
+      onAddPressed: _addDocument,
+      child: _documents.isEmpty
+          ? _buildEmptyState('No documents requested')
+          : Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: _documents.asMap().entries.map((entry) {
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  margin: const EdgeInsets.only(top: 4),
+                  width: 6,
+                  height: 6,
+                  decoration: BoxDecoration(
+                    color: Colors.blue[700],
+                    shape: BoxShape.circle,
+                  ),
+                ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
@@ -360,6 +450,7 @@ class _InquiryDetailsScreenState extends State<InquiryDetailsScreen> {
                     style: const TextStyle(
                       fontSize: 15,
                       color: Colors.black87,
+                      height: 1.5,
                     ),
                   ),
                 ),
@@ -434,6 +525,38 @@ class _InquiryDetailsScreenState extends State<InquiryDetailsScreen> {
           ),
           const SizedBox(height: 16),
           child,
+        ],
+      ),
+    );
+  }
+
+  /// Builds an info row for visit details.
+  Widget _buildVisitInfoRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 70,
+            child: Text(
+              '$label:',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                color: Colors.grey[700],
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(
+                fontSize: 13,
+                color: Colors.black87,
+              ),
+            ),
+          ),
         ],
       ),
     );

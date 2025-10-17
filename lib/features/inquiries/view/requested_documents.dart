@@ -1,38 +1,35 @@
 import 'package:flutter/material.dart';
 
-class AddRecommendationScreen extends StatefulWidget {
-  final Function(Map<String, String>) onAddRecommendation;
+class RequestedDocumentsScreen extends StatefulWidget {
+  final Function(Map<String, String>) onAddDocument;
 
-  const AddRecommendationScreen({
+  const RequestedDocumentsScreen({
     super.key,
-    required this.onAddRecommendation,
+    required this.onAddDocument,
   });
 
   @override
-  State<AddRecommendationScreen> createState() => _AddRecommendationScreenState();
+  State<RequestedDocumentsScreen> createState() => _RequestedDocumentsScreenState();
 }
 
-class _AddRecommendationScreenState extends State<AddRecommendationScreen> {
-  final TextEditingController _recommendationController = TextEditingController();
-  final TextEditingController _penaltyController = TextEditingController();
+class _RequestedDocumentsScreenState extends State<RequestedDocumentsScreen> {
+  String? _selectedDocumentType;
 
-  @override
-  void dispose() {
-    _recommendationController.dispose();
-    _penaltyController.dispose();
-    super.dispose();
-  }
+  final List<String> documentTypes = [
+    'Invoice',
+    'Receipt',
+    'Quotation',
+    'Contract',
+    'Certificate',
+    'License',
+    'Permit',
+    'Report',
+  ];
 
   bool _validateForm() {
-    if (_recommendationController.text.isEmpty) {
+    if (_selectedDocumentType == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a recommendation')),
-      );
-      return false;
-    }
-    if (_penaltyController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter penalty imposed')),
+        const SnackBar(content: Text('Please select document type')),
       );
       return false;
     }
@@ -41,11 +38,10 @@ class _AddRecommendationScreenState extends State<AddRecommendationScreen> {
 
   void _handleAdd() {
     if (_validateForm()) {
-      final recommendationData = {
-        'recommendation': _recommendationController.text,
-        'penalty': _penaltyController.text,
+      final documentData = {
+        'documentType': _selectedDocumentType!,
       };
-      widget.onAddRecommendation(recommendationData);
+      widget.onAddDocument(documentData);
       Navigator.pop(context);
     }
   }
@@ -62,7 +58,7 @@ class _AddRecommendationScreenState extends State<AddRecommendationScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
-          "Add Recommendation",
+          "Add Requested Document",
           style: TextStyle(
             color: Colors.black87,
             fontSize: 20,
@@ -93,7 +89,7 @@ class _AddRecommendationScreenState extends State<AddRecommendationScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      'Add Recommendation',
+                      'Add Requested Document',
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w600,
@@ -102,16 +98,16 @@ class _AddRecommendationScreenState extends State<AddRecommendationScreen> {
                     ),
                     const SizedBox(height: 8),
                     const Text(
-                      'Add recommendations for this inquiry (Team members only).',
+                      'Request documents for this inquiry.',
                       style: TextStyle(
                         fontSize: 14,
                         color: Colors.grey,
                       ),
                     ),
                     const SizedBox(height: 24),
-                    // Recommendation
+                    // Document Type
                     const Text(
-                      'Recommendation *',
+                      'Document Type *',
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
@@ -119,12 +115,10 @@ class _AddRecommendationScreenState extends State<AddRecommendationScreen> {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    TextField(
-                      controller: _recommendationController,
-                      maxLines: 6,
+                    DropdownButtonFormField<String>(
+                      value: _selectedDocumentType,
                       decoration: InputDecoration(
-                        hintText: 'Enter your recommendation',
-                        hintStyle: TextStyle(color: Colors.grey[400]),
+                        hintText: 'Select Document Type',
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
                           borderSide: BorderSide(color: Colors.grey[300]!),
@@ -133,36 +127,15 @@ class _AddRecommendationScreenState extends State<AddRecommendationScreen> {
                           borderRadius: BorderRadius.circular(8),
                           borderSide: BorderSide(color: Colors.blue[700]!, width: 2),
                         ),
-                        contentPadding: const EdgeInsets.all(12),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                       ),
-                    ),
-                    const SizedBox(height: 16),
-                    // Penalty Imposed
-                    const Text(
-                      'Penalty Imposed *',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                        color: Colors.grey,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    TextField(
-                      controller: _penaltyController,
-                      maxLines: 4,
-                      decoration: InputDecoration(
-                        hintText: 'Enter penalty imposed',
-                        hintStyle: TextStyle(color: Colors.grey[400]),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide(color: Colors.grey[300]!),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide(color: Colors.blue[700]!, width: 2),
-                        ),
-                        contentPadding: const EdgeInsets.all(12),
-                      ),
+                      items: documentTypes
+                          .map((type) => DropdownMenuItem(
+                        value: type,
+                        child: Text(type),
+                      ))
+                          .toList(),
+                      onChanged: (value) => setState(() => _selectedDocumentType = value),
                     ),
                     const SizedBox(height: 24),
                     Row(
@@ -199,7 +172,7 @@ class _AddRecommendationScreenState extends State<AddRecommendationScreen> {
                               ),
                             ),
                             child: const Text(
-                              'Add ',
+                              'Add Document',
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w600,
