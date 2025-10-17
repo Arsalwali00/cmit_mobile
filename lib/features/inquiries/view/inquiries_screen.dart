@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cmit/core/assign_to_me.dart';
-import 'package:cmit/core/inquiry_utils.dart'; // Import the helper function
-import 'package:cmit/features/inquiries/view/inquiry_card.dart'; // Import the InquiryCard widget
+import 'package:cmit/core/inquiry_utils.dart';
+import 'package:cmit/features/inquiries/view/inquiry_card.dart';
 import 'package:cmit/features/home/model/assign_to_me_model.dart';
 import 'package:cmit/features/inquiries/view/inquiry_details_screen.dart';
 
@@ -118,7 +118,6 @@ class _InquiriesScreenState extends State<InquiriesScreen> {
                     date: inquiry.createdAt,
                   );
                   return InquiryCard(
-
                     title: inquiry.title,
                     department: inquiry.department.name,
                     date: formattedDetails['formattedDate'],
@@ -144,6 +143,9 @@ class _InquiriesScreenState extends State<InquiriesScreen> {
                             priority: inquiry.priority,
                             inquiryType: inquiry.inquiryType.name,
                             initiator: inquiry.initiator.name,
+                            teamMembers: inquiry.teamMembers.map((member) => member.user.name).toList(),
+                            recommendations: inquiry.recommendations ?? [],
+                            visits: inquiry.visits ?? [],
                           ),
                         ),
                       );

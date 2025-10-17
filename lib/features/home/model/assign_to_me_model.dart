@@ -17,6 +17,8 @@ class AssignToMeModel {
   final String createdAt;
   final String updatedAt;
   final List<TeamMember> teamMembers;
+  final List<dynamic> recommendations;
+  final List<dynamic> visits;
   final InquiryType inquiryType;
   final Department department;
   final User initiator;
@@ -40,6 +42,8 @@ class AssignToMeModel {
     required this.createdAt,
     required this.updatedAt,
     required this.teamMembers,
+    required this.recommendations,
+    required this.visits,
     required this.inquiryType,
     required this.department,
     required this.initiator,
@@ -65,6 +69,8 @@ class AssignToMeModel {
       'created_at': createdAt,
       'updated_at': updatedAt,
       'team_members': teamMembers.map((member) => member.toJson()).toList(),
+      'recommendations': recommendations,
+      'visits': visits,
       'inquiry_type': inquiryType.toJson(),
       'department': department.toJson(),
       'initiator': initiator.toJson(),
@@ -94,11 +100,14 @@ class AssignToMeModel {
           ?.map((item) => TeamMember.fromJson({'name': item.toString()}))
           .toList() ??
           [],
+      recommendations: json['recommendations'] as List<dynamic>? ?? [],
+      visits: json['visits'] as List<dynamic>? ?? [],
       inquiryType: InquiryType.fromJson(
           json['inquiry_type'] is Map ? json['inquiry_type'] : {'name': json['inquiry_type'] ?? ''}),
       department: Department.fromJson(
           json['department'] is Map ? json['department'] : {'name': json['department'] ?? ''}),
-      initiator: User.fromJson(json['initiator'] is Map ? json['initiator'] : {'name': json['initiator'] ?? ''}),
+      initiator: User.fromJson(
+          json['initiator'] is Map ? json['initiator'] : {'name': json['initiator'] ?? ''}),
       recommender: User.fromJson(
           json['recommender'] is Map ? json['recommender'] : {'name': json['recommender'] ?? ''}),
       assignedTo: User.fromJson(

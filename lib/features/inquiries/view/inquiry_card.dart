@@ -25,8 +25,8 @@ class InquiryCard extends StatelessWidget {
   static const double _cardPadding = 16.0;
   static const double _spacing = 8.0;
   static const double _borderRadius = 12.0;
-  static const double _statusChipHorizontalPadding = 12.0;
-  static const double _statusChipVerticalPadding = 6.0;
+  static const double _chipHorizontalPadding = 12.0;
+  static const double _chipVerticalPadding = 6.0;
   static const double _elevation = 2.0;
 
   const InquiryCard({
@@ -46,8 +46,6 @@ class InquiryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-
     return GestureDetector(
       onTap: onTap,
       child: Card(
@@ -70,14 +68,20 @@ class InquiryCard extends StatelessWidget {
                   children: [
                     _buildTitle(),
                     const SizedBox(height: _spacing),
-                    _buildPriority(),
-                    const SizedBox(height: _spacing),
                     _buildDetailsSection(),
                   ],
                 ),
               ),
-              // Status chip column
-              _buildStatusChip(),
+              // Status and Priority chips column
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  _buildStatusChip(),
+                  const SizedBox(height: _spacing),
+                  _buildPriorityChip(),
+                ],
+              ),
             ],
           ),
         ),
@@ -96,18 +100,6 @@ class InquiryCard extends StatelessWidget {
       ),
       maxLines: 2,
       overflow: TextOverflow.ellipsis,
-    );
-  }
-
-  /// Builds the priority widget with a distinct color for emphasis.
-  Widget _buildPriority() {
-    return Text(
-      priority,
-      style: const TextStyle(
-        fontSize: 14,
-        fontWeight: FontWeight.w600,
-        color: Colors.black87,
-      ),
     );
   }
 
@@ -147,12 +139,12 @@ class InquiryCard extends StatelessWidget {
     );
   }
 
-  /// Builds the status chip widget aligned to the right.
+  /// Builds the status chip widget.
   Widget _buildStatusChip() {
     return Container(
       padding: const EdgeInsets.symmetric(
-        horizontal: _statusChipHorizontalPadding,
-        vertical: _statusChipVerticalPadding,
+        horizontal: _chipHorizontalPadding,
+        vertical: _chipVerticalPadding,
       ),
       decoration: BoxDecoration(
         color: statusBackgroundColor,
@@ -162,6 +154,50 @@ class InquiryCard extends StatelessWidget {
         status,
         style: TextStyle(
           color: statusTextColor,
+          fontWeight: FontWeight.w500,
+          fontSize: 12,
+        ),
+      ),
+    );
+  }
+
+  /// Builds the priority chip widget with dynamic colors.
+  Widget _buildPriorityChip() {
+    // Assign colors based on priority value
+    final Map<String, Map<String, Color>> priorityColors = {
+      'High': {
+        'background': Colors.red[100]!,
+        'text': Colors.red[900]!,
+      },
+      'Medium': {
+        'background': Colors.yellow[100]!,
+        'text': Colors.yellow[900]!,
+      },
+      'Low': {
+        'background': Colors.blue[100]!, // Similar to "in progress" style
+        'text': Colors.blue[900]!,
+      },
+    };
+
+    final colors = priorityColors[priority] ??
+        {
+          'background': Colors.blue[100]!, // Default to blue for "in progress" style
+          'text': Colors.white,
+        };
+
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: _chipHorizontalPadding,
+        vertical: _chipVerticalPadding,
+      ),
+      decoration: BoxDecoration(
+        color: colors['background'],
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        priority,
+        style: TextStyle(
+          color: colors['text'],
           fontWeight: FontWeight.w500,
           fontSize: 12,
         ),
