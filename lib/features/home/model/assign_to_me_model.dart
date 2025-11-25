@@ -1,301 +1,135 @@
-import 'dart:convert';
+// lib/models/assign_to_me_model.dart
+import 'package:flutter/material.dart';
 
 class AssignToMeModel {
   final int id;
-  final String inquiryRequestId;
   final String title;
   final String description;
   final String tors;
-  final String departmentId;
-  final String initiatorId;
   final String timeFrame;
-  final String priority;
-  final String inquiryTypeId;
-  final String recommenderId;
-  final String assignedToId;
-  final String status;
-  final String createdAt;
-  final String updatedAt;
-  final List<TeamMember> teamMembers;
+  final String priority;        // "1" = Low, "2" = Medium, "3" = High
+  final String status;         // "0" = Submitted, "1" = Recommended, etc.
+  final String inquiryType;
+  final String department;
+  final String initiator;
+  final String recommender;
+  final String assignedTo;
+  final List<String> teamMembers;
+  final String userRole;         // e.g., "Chairperson", "Member"
+  final DateTime createdAt;
+
   final List<dynamic> recommendations;
   final List<dynamic> visits;
-  final InquiryType inquiryType;
-  final Department department;
-  final User initiator;
-  final User recommender;
-  final User assignedTo;
 
-  AssignToMeModel({
+  const AssignToMeModel({
     required this.id,
-    required this.inquiryRequestId,
     required this.title,
     required this.description,
     required this.tors,
-    required this.departmentId,
-    required this.initiatorId,
     required this.timeFrame,
     required this.priority,
-    required this.inquiryTypeId,
-    required this.recommenderId,
-    required this.assignedToId,
     required this.status,
-    required this.createdAt,
-    required this.updatedAt,
-    required this.teamMembers,
-    required this.recommendations,
-    required this.visits,
     required this.inquiryType,
     required this.department,
     required this.initiator,
     required this.recommender,
     required this.assignedTo,
+    required this.teamMembers,
+    required this.userRole,
+    required this.createdAt,
+    this.recommendations = const [],
+    this.visits = const [],
   });
-
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'inquiry_request_id': inquiryRequestId,
-      'title': title,
-      'description': description,
-      'tors': tors,
-      'department_id': departmentId,
-      'initiator_id': initiatorId,
-      'time_frame': timeFrame,
-      'priority': priority,
-      'inquiry_type_id': inquiryTypeId,
-      'recommender_id': recommenderId,
-      'assigned_to_id': assignedToId,
-      'status': status,
-      'created_at': createdAt,
-      'updated_at': updatedAt,
-      'team_members': teamMembers.map((member) => member.toJson()).toList(),
-      'recommendations': recommendations,
-      'visits': visits,
-      'inquiry_type': inquiryType.toJson(),
-      'department': department.toJson(),
-      'initiator': initiator.toJson(),
-      'recommender': recommender.toJson(),
-      'assigned_to': assignedTo.toJson(),
-    };
-  }
 
   factory AssignToMeModel.fromJson(Map<String, dynamic> json) {
     return AssignToMeModel(
-      id: int.parse(json['id'].toString()),
-      inquiryRequestId: json['inquiry_request_id']?.toString() ?? json['id'].toString(),
-      title: json['title'] ?? '',
-      description: json['description'] ?? '',
-      tors: json['tors'] ?? '',
-      departmentId: json['department_id']?.toString() ?? '0',
-      initiatorId: json['initiator_id']?.toString() ?? '0',
-      timeFrame: json['time_frame'] ?? '',
-      priority: json['priority'].toString(),
-      inquiryTypeId: json['inquiry_type_id']?.toString() ?? '0',
-      recommenderId: json['recommender_id']?.toString() ?? '0',
-      assignedToId: json['assigned_to_id']?.toString() ?? '0',
-      status: json['status'].toString(),
-      createdAt: json['created_at'] ?? '',
-      updatedAt: json['updated_at'] ?? '',
-      teamMembers: (json['team_members'] as List<dynamic>?)
-          ?.map((item) => TeamMember.fromJson({'name': item.toString()}))
-          .toList() ??
-          [],
-      recommendations: json['recommendations'] as List<dynamic>? ?? [],
-      visits: json['visits'] as List<dynamic>? ?? [],
-      inquiryType: InquiryType.fromJson(
-          json['inquiry_type'] is Map ? json['inquiry_type'] : {'name': json['inquiry_type'] ?? ''}),
-      department: Department.fromJson(
-          json['department'] is Map ? json['department'] : {'name': json['department'] ?? ''}),
-      initiator: User.fromJson(
-          json['initiator'] is Map ? json['initiator'] : {'name': json['initiator'] ?? ''}),
-      recommender: User.fromJson(
-          json['recommender'] is Map ? json['recommender'] : {'name': json['recommender'] ?? ''}),
-      assignedTo: User.fromJson(
-          json['assigned_to'] is Map ? json['assigned_to'] : {'name': json['assigned_to'] ?? ''}),
+      id: int.tryParse(json['id'].toString()) ?? 0,
+      title: (json['title'] ?? '').toString().trim(),
+      description: (json['description'] ?? '').toString(),
+      tors: (json['tors'] ?? json['tor'] ?? '').toString(),
+      timeFrame: (json['time_frame'] ?? json['timeFrame'] ?? '').toString().trim(),
+      priority: (json['priority'] ?? '').toString(),
+      status: (json['status'] ?? '').toString(),
+      inquiryType: _safeString(json['inquiry_type'] ?? json['inquiryType']),
+      department: _safeString(json['department'] ?? json['department_name']),
+      initiator: _safeString(json['initiator']),
+      recommender: _safeString(json['recommender']),
+      assignedTo: _safeString(json['assigned_to'] ?? json['assignedTo']),
+      teamMembers: _parseTeamMembers(json['team_members']),
+      userRole: (json['user_role'] ?? json['role'] ?? 'Member').toString().trim(),
+      createdAt: DateTime.tryParse(json['created_at']?.toString() ?? '') ?? DateTime.now(),
+      recommendations: json['recommendations'] ?? [],
+      visits: json['visits'] ?? [],
     );
+  }
+
+  static String _safeString(dynamic value) {
+    if (value == null) return '';
+    if (value is String) return value.trim();
+    if (value is Map) return (value['name'] ?? value['title'] ?? '').toString().trim();
+    return value.toString().trim();
+  }
+
+  static List<String> _parseTeamMembers(dynamic data) {
+    if (data == null || data is! List) return [];
+    return data.map<String>((item) {
+      if (item is String) return item.trim();
+      if (item is Map) {
+        return (item['name'] ??
+            item['user']?['name'] ??
+            item['full_name'] ??
+            '')
+            .toString()
+            .trim();
+      }
+      return '';
+    }).where((name) => name.isNotEmpty).toList();
   }
 }
 
-class TeamMember {
-  final int id;
-  final String inquiryId;
-  final String userId;
-  final String role;
-  final String createdAt;
-  final String updatedAt;
-  final User user;
+// FINAL EXTENSION — 100% CORRECT STATUS & PRIORITY
+extension AssignToMeModelX on AssignToMeModel {
+  bool get isChairperson => userRole.toLowerCase().contains('chair');
 
-  TeamMember({
-    required this.id,
-    required this.inquiryId,
-    required this.userId,
-    required this.role,
-    required this.createdAt,
-    required this.updatedAt,
-    required this.user,
-  });
+  // STATUS MAPPING AS PER YOUR LATEST REQUIREMENT
+  String get statusText => switch (status) {
+    '0' => 'Submitted',
+    '1' => 'Recommended',
+    '2' => 'Assigned',
+    '3' => 'Under Review',
+    '4' => 'Completed',
+    '5' => 'Rejected',
+    _ => 'Unknown',
+  };
 
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'inquiry_id': inquiryId,
-      'user_id': userId,
-      'role': role,
-      'created_at': createdAt,
-      'updated_at': updatedAt,
-      'user': user.toJson(),
-    };
-  }
+  // PRIORITY: 1=Low, 2=Medium, 3=High
+  String get priorityText => switch (priority) {
+    '1' => 'Low',
+    '2' => 'Medium',
+    '3' => 'High',
+    _ => 'Normal',
+  };
 
-  factory TeamMember.fromJson(Map<String, dynamic> json) {
-    return TeamMember(
-      id: int.parse(json['id']?.toString() ?? '0'),
-      inquiryId: json['inquiry_id']?.toString() ?? '0',
-      userId: json['user_id']?.toString() ?? '0',
-      role: json['role'] ?? '',
-      createdAt: json['created_at'] ?? '',
-      updatedAt: json['updated_at'] ?? '',
-      user: User.fromJson(json['user'] is Map ? json['user'] : {'name': json['name'] ?? ''}),
-    );
-  }
-}
+  // Beautiful, meaningful colors
+  Color get statusColor => switch (status) {
+    '0' => Colors.purple.shade600,      // Submitted
+    '1' => Colors.cyan.shade700,        // Recommended
+    '2' => Colors.blue.shade700,        // Assigned
+    '3' => Colors.orange.shade700,      // Under Review
+    '4' => Colors.green.shade700,       // Completed
+    '5' => Colors.red.shade700,         // Rejected
+    _ => Colors.grey.shade600,
+  };
 
-class InquiryType {
-  final int id;
-  final String name;
-  final String code;
-  final String createdAt;
-  final String updatedAt;
+  Color get priorityColor => switch (priority) {
+    '1' => Colors.green.shade600,       // Low = Green
+    '2' => Colors.orange.shade700,      // Medium = Orange
+    '3' => Colors.red.shade700,         // High = Red
+    _ => Colors.grey.shade600,
+  };
 
-  InquiryType({
-    required this.id,
-    required this.name,
-    required this.code,
-    required this.createdAt,
-    required this.updatedAt,
-  });
-
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'name': name,
-      'code': code,
-      'created_at': createdAt,
-      'updated_at': updatedAt,
-    };
-  }
-
-  factory InquiryType.fromJson(Map<String, dynamic> json) {
-    return InquiryType(
-      id: int.parse(json['id']?.toString() ?? '0'),
-      name: json['name'] ?? '',
-      code: json['code'] ?? '',
-      createdAt: json['created_at'] ?? '',
-      updatedAt: json['updated_at'] ?? '',
-    );
-  }
-}
-
-class Department {
-  final int id;
-  final String name;
-  final String code;
-  final String createdAt;
-  final String updatedAt;
-
-  Department({
-    required this.id,
-    required this.name,
-    required this.code,
-    required this.createdAt,
-    required this.updatedAt,
-  });
-
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'name': name,
-      'code': code,
-      'created_at': createdAt,
-      'updated_at': updatedAt,
-    };
-  }
-
-  factory Department.fromJson(Map<String, dynamic> json) {
-    return Department(
-      id: int.parse(json['id']?.toString() ?? '0'),
-      name: json['name'] ?? '',
-      code: json['code'] ?? '',
-      createdAt: json['created_at'] ?? '',
-      updatedAt: json['updated_at'] ?? '',
-    );
-  }
-}
-
-class User {
-  final int id;
-  final String designationId;
-  final String? departmentId;
-  final String name;
-  final String cnicNumber;
-  final String cellNumber;
-  final String email;
-  final String? signature;
-  final String? emailVerifiedAt;
-  final String? profilePicture;
-  final String status;
-  final String createdAt;
-  final String updatedAt;
-
-  User({
-    required this.id,
-    required this.designationId,
-    this.departmentId,
-    required this.name,
-    required this.cnicNumber,
-    required this.cellNumber,
-    required this.email,
-    this.signature,
-    this.emailVerifiedAt,
-    this.profilePicture,
-    required this.status,
-    required this.createdAt,
-    required this.updatedAt,
-  });
-
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'designation_id': designationId,
-      'department_id': departmentId,
-      'name': name,
-      'cnic_number': cnicNumber,
-      'cell_number': cellNumber,
-      'email': email,
-      'signature': signature,
-      'email_verified_at': emailVerifiedAt,
-      'profile_picture': profilePicture,
-      'status': status,
-      'created_at': createdAt,
-      'updated_at': updatedAt,
-    };
-  }
-
-  factory User.fromJson(Map<String, dynamic> json) {
-    return User(
-      id: int.parse(json['id']?.toString() ?? '0'),
-      designationId: json['designation_id']?.toString() ?? '0',
-      departmentId: json['department_id']?.toString(),
-      name: json['name'] ?? '',
-      cnicNumber: json['cnic_number'] ?? '',
-      cellNumber: json['cell_number'] ?? '',
-      email: json['email'] ?? '',
-      signature: json['signature'],
-      emailVerifiedAt: json['email_verified_at'],
-      profilePicture: json['profile_picture'],
-      status: json['status']?.toString() ?? '0',
-      createdAt: json['created_at'] ?? '',
-      updatedAt: json['updated_at'] ?? '',
-    );
-  }
+  String get formattedDate =>
+      '${createdAt.day.toString().padLeft(2, '0')}/'
+          '${createdAt.month.toString().padLeft(2, '0')}/'
+          '${createdAt.year}';
 }

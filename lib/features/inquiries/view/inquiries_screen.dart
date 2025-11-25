@@ -1,29 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:cmit/core/assign_to_me.dart';
-import 'package:cmit/core/inquiry_utils.dart';
 import 'package:cmit/features/inquiries/view/inquiry_card.dart';
-import 'package:cmit/features/home/model/assign_to_me_model.dart';
 import 'package:cmit/features/inquiries/view/inquiry_details_screen.dart';
+import 'package:cmit/features/home/model/assign_to_me_model.dart';
 
 class InquiriesScreen extends StatefulWidget {
   const InquiriesScreen({super.key});
 
   @override
-  _InquiriesScreenState createState() => _InquiriesScreenState();
+  State<InquiriesScreen> createState() => _InquiriesScreenState();
 }
 
 class _InquiriesScreenState extends State<InquiriesScreen> {
-  List<AssignToMeModel> inquiries = [];
-  List<AssignToMeModel> filteredInquiries = [];
-  bool isLoading = true;
-  String errorMessage = '';
-  final TextEditingController _searchController = TextEditingController();
+  List<AssignToMeModel> _inquiries = [];
+  List<AssignToMeModel> _filtered = [];
+  bool _isLoading = true;
+  String _error = '';
+  final _searchController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    _fetchInquiries();
-    _searchController.addListener(_filterInquiries);
+    _loadInquiries();
+    _searchController.addListener(_filter);
   }
 
   @override
@@ -32,33 +31,40 @@ class _InquiriesScreenState extends State<InquiriesScreen> {
     super.dispose();
   }
 
-  /// Fetch inquiries from API
-  Future<void> _fetchInquiries() async {
-    setState(() {
-      isLoading = true;
-      errorMessage = '';
-    });
+  Future<void> _loadInquiries() async {
+    setState(() => _isLoading = true);
+    try {
+      final result = await AssignToMe.getAssignedInquiries();
+      if (!mounted) return;
 
-    final response = await AssignToMe.getAssignedInquiries();
-
-    setState(() {
-      isLoading = false;
-      if (response['success'] == true) {
-        inquiries = response['inquiries'] as List<AssignToMeModel>;
-        filteredInquiries = inquiries;
-      } else {
-        errorMessage = response['message'] ?? 'Failed to load inquiries';
-      }
-    });
+      setState(() {
+        _isLoading = false;
+        if (result['success'] == true) {
+          _inquiries = result['inquiries'] as List<AssignToMeModel>;
+          _filtered = List.from(_inquiries);
+        } else {
+          _error = result['message'] ?? 'Failed to load inquiries';
+        }
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+        _error = 'Please check your connection';
+      });
+    }
   }
 
-  /// Filter inquiries based on search input
-  void _filterInquiries() {
-    final query = _searchController.text.toLowerCase();
+  void _filter() {
+    final query = _searchController.text.toLowerCase().trim();
     setState(() {
-      filteredInquiries = inquiries.where((inquiry) {
-        return inquiry.title.toLowerCase().contains(query) ||
-            inquiry.inquiryRequestId.toLowerCase().contains(query);
+      _filtered = query.isEmpty
+          ? List.from(_inquiries)
+          : _inquiries.where((i) {
+        return i.title.toLowerCase().contains(query) ||
+            i.department.toLowerCase().contains(query) ||
+            i.initiator.toLowerCase().contains(query) ||
+            i.assignedTo.toLowerCase().contains(query);
       }).toList();
     });
   }
@@ -68,95 +74,65 @@ class _InquiriesScreenState extends State<InquiriesScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text(
-          "Inquiries",
-          style: TextStyle(color: Colors.black),
-        ),
+        title: const Text('My Inquiries', style: TextStyle(fontWeight: FontWeight.w600)),
         centerTitle: true,
         backgroundColor: Colors.white,
         elevation: 0,
         automaticallyImplyLeading: false,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          children: [
-            // 🔍 Search Bar
-            TextField(
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: TextField(
               controller: _searchController,
               decoration: InputDecoration(
-                prefixIcon: const Icon(Icons.search, color: Colors.black54),
-                hintText: "Search",
+                hintText: 'Search inquiries...',
+                prefixIcon: const Icon(Icons.search),
                 filled: true,
                 fillColor: Colors.grey[100],
-                contentPadding:
-                const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: BorderSide.none,
-                ),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
               ),
             ),
-            const SizedBox(height: 12),
-
-            // 📋 Inquiry List
-            Expanded(
-              child: isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : errorMessage.isNotEmpty
-                  ? Center(child: Text(errorMessage))
-                  : filteredInquiries.isEmpty
-                  ? const Center(child: Text("No inquiries found"))
-                  : ListView.builder(
-                itemCount: filteredInquiries.length,
-                itemBuilder: (context, index) {
-                  final inquiry = filteredInquiries[index];
-                  // Use helper function for formatting
-                  final formattedDetails = InquiryUtils.formatInquiryDetails(
-                    status: inquiry.status,
-                    priority: inquiry.priority,
-                    date: inquiry.createdAt,
-                  );
-                  return InquiryCard(
-                    title: inquiry.title,
-                    department: inquiry.department.name,
-                    date: formattedDetails['formattedDate'],
-                    status: formattedDetails['statusText'],
-                    statusBackgroundColor: formattedDetails['statusBackgroundColor'],
-                    statusTextColor: formattedDetails['statusTextColor'],
-                    priority: formattedDetails['priorityText'],
-                    inquiryType: inquiry.inquiryType.name,
-                    initiator: inquiry.initiator.name,
-                    assignedTo: inquiry.assignedTo.name,
-                    onTap: () {
-                      Navigator.push(
+          ),
+          Expanded(
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : _error.isNotEmpty
+                ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(_error),
+                  const SizedBox(height: 16),
+                  ElevatedButton(onPressed: _loadInquiries, child: const Text('Retry')),
+                ],
+              ),
+            )
+                : _filtered.isEmpty
+                ? const Center(child: Text('No inquiries found'))
+                : RefreshIndicator(
+              onRefresh: _loadInquiries,
+              child: ListView.builder(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                itemCount: _filtered.length,
+                itemBuilder: (context, i) {
+                  final inquiry = _filtered[i];
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: InquiryCard(
+                      inquiry: inquiry,
+                      onTap: () => Navigator.push(
                         context,
-                        MaterialPageRoute(
-                          builder: (context) => InquiryDetailsScreen(
-                            ref: inquiry.inquiryRequestId,
-                            title: inquiry.title,
-                            dept: inquiry.department.name,
-                            assignedTo: inquiry.assignedTo.name,
-                            date: inquiry.createdAt,
-                            status: inquiry.status,
-                            description: inquiry.description,
-                            tors: inquiry.tors,
-                            priority: inquiry.priority,
-                            inquiryType: inquiry.inquiryType.name,
-                            initiator: inquiry.initiator.name,
-                            teamMembers: inquiry.teamMembers.map((member) => member.user.name).toList(),
-                            recommendations: inquiry.recommendations ?? [],
-                            visits: inquiry.visits ?? [],
-                          ),
-                        ),
-                      );
-                    },
+                        MaterialPageRoute(builder: (_) => InquiryDetailsScreen(inquiry: inquiry)),
+                      ),
+                    ),
                   );
                 },
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

@@ -1,43 +1,17 @@
+// lib/features/inquiries/view/inquiry_details_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_html/flutter_html.dart';
-import 'package:cmit/core/inquiry_utils.dart';
 import 'add_recommendations.dart';
 import 'add_visits.dart';
 import 'requested_documents.dart';
+import 'package:cmit/features/home/model/assign_to_me_model.dart';
 
-/// Screen to display detailed information about an inquiry.
 class InquiryDetailsScreen extends StatefulWidget {
-  final String ref;
-  final String title;
-  final String dept;
-  final String assignedTo;
-  final String date;
-  final String status;
-  final String description;
-  final String tors;
-  final String priority;
-  final String inquiryType;
-  final String initiator;
-  final List<String> teamMembers;
-  final List<dynamic> recommendations;
-  final List<dynamic> visits;
+  final AssignToMeModel inquiry;
 
   const InquiryDetailsScreen({
     super.key,
-    required this.ref,
-    required this.title,
-    required this.dept,
-    required this.assignedTo,
-    required this.date,
-    required this.status,
-    required this.description,
-    required this.tors,
-    required this.priority,
-    required this.inquiryType,
-    required this.initiator,
-    required this.teamMembers,
-    required this.recommendations,
-    required this.visits,
+    required this.inquiry,
   });
 
   @override
@@ -45,681 +19,344 @@ class InquiryDetailsScreen extends StatefulWidget {
 }
 
 class _InquiryDetailsScreenState extends State<InquiryDetailsScreen> {
-  late List<dynamic> _recommendations;
-  late List<dynamic> _visits;
-  late List<dynamic> _documents; // Added for documents state
+  late List<dynamic> recommendations;
+  late List<dynamic> visits;
+  late List<dynamic> documents = [];
 
   @override
   void initState() {
     super.initState();
-    _recommendations = List.from(widget.recommendations);
-    _visits = List.from(widget.visits);
-    _documents = []; // Initialize empty documents list (replace with widget.documents if available)
+    recommendations = List.from(widget.inquiry.recommendations);
+    visits = List.from(widget.inquiry.visits);
   }
 
-  void _addRecommendation() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => AddRecommendationScreen(
-          onAddRecommendation: (recommendation) {
-            setState(() => _recommendations.add(recommendation));
-          },
-        ),
+  void _addRecommendation() => Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (_) => AddRecommendationScreen(
+        onAddRecommendation: (text) {
+          setState(() => recommendations.add(text));
+          Navigator.pop(context);
+        },
       ),
-    );
-  }
+    ),
+  );
 
-  void _addVisit() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => AddVisitsScreen(
-          onAddVisit: (visitData) {
-            final visitSummary = 'Date: ${visitData['date']}, Time: ${visitData['time']}, Driver: ${visitData['driver']}, Vehicle: ${visitData['vehicle']}, Findings: ${visitData['findings']}';
-            setState(() => _visits.add(visitData));
-          },
-        ),
+  void _addVisit() => Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (_) => AddVisitsScreen(
+        onAddVisit: (visit) {
+          setState(() => visits.add(visit));
+          Navigator.pop(context);
+        },
       ),
-    );
-  }
+    ),
+  );
 
-  void _addDocument() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => RequestedDocumentsScreen(
-          onAddDocument: (document) {
-            setState(() => _documents.add(document));
-          },
-        ),
+  void _addDocument() => Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (_) => RequestedDocumentsScreen(
+        onAddDocument: (doc) {
+          setState(() => documents.add(doc));
+          Navigator.pop(context);
+        },
       ),
-    );
-  }
+    ),
+  );
+
+  // Helper to avoid repeating widget.inquiry everywhere
+  AssignToMeModel get i => widget.inquiry;
 
   @override
-  Widget build(BuildContext context) {
-    final formattedDetails = InquiryUtils.formatInquiryDetails(
-      status: widget.status,
-      priority: widget.priority,
-      date: widget.date,
-    );
+  Widget build
+
+      (BuildContext context) {
+    final isChairperson = i.isChairperson;
 
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
-        elevation: 0,
         backgroundColor: Colors.white,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black87),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: const Text(
-          "Inquiry Details",
-          style: TextStyle(
-            color: Colors.black87,
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
+        elevation: 0,
+        leading: const BackButton(color: Colors.black87),
+        title: const Text('Inquiry Details', style: TextStyle(fontWeight: FontWeight.w600)),
+        actions: [
+          if (isChairperson)
+            Container(
+              margin: const EdgeInsets.only(right: 16),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.deepPurple.shade100,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.star, size: 16, color: Colors.deepPurple),
+                  SizedBox(width: 4),
+                  Text('Chairperson', style: TextStyle(color: Colors.deepPurple, fontWeight: FontWeight.bold)),
+                ],
+              ),
+            ),
+        ],
       ),
       body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildHeader(formattedDetails),
-            const SizedBox(height: 8),
-            _buildDetailsCard(formattedDetails),
-            const SizedBox(height: 12),
+            _buildHeader(isChairperson),
+            const SizedBox(height: 16),
+            _buildDetailsCard(),
+            const SizedBox(height: 16),
             _buildTeamMembersCard(),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
             _buildRecommendationsCard(),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
             _buildVisitsCard(),
-            const SizedBox(height: 12),
-            _buildRequestedDocumentsCard(),
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
+            _buildDocumentsCard(),
+            const SizedBox(height: 32),
           ],
         ),
       ),
     );
   }
 
-  /// Builds the header with title, status, and priority.
-  Widget _buildHeader(Map<String, dynamic> formattedDetails) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(
-          bottom: BorderSide(color: Color(0xFFE0E0E0), width: 1),
+  Widget _buildHeader(bool isChairperson) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    i.title,
+                    style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                  ),
+                ),
+                if (isChairperson) const Icon(Icons.star, color: Colors.amber, size: 28),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Wrap(
+              spacing: 12,
+              runSpacing: 8,
+              children: [
+                _badge(i.statusText, i.statusColor),
+                _badge(i.priorityText, i.priorityColor),
+                _badge(i.inquiryType, Colors.purple.shade600),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text('Ref: #${i.id} • ${i.formattedDate}', style: TextStyle(color: Colors.grey[600], fontSize: 13)),
+          ],
         ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            widget.title,
-            style: const TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
-              height: 1.3,
-            ),
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              _buildStatusBadge(
-                formattedDetails['statusText'] as String,
-                _getStatusColor(widget.status),
-              ),
-              const SizedBox(width: 12),
-              _buildPriorityBadge(
-                formattedDetails['priorityText'] as String,
-                _getPriorityColor(widget.priority),
-              ),
-            ],
-          ),
-        ],
-      ),
     );
   }
 
-  /// Builds the main details card.
-  Widget _buildDetailsCard(Map<String, dynamic> formattedDetails) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Details',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-              color: Colors.black87,
-            ),
-          ),
-          const SizedBox(height: 16),
-          _buildInfoRow(Icons.calendar_today, 'Date', formattedDetails['formattedDate'] as String),
-          _buildDivider(),
-          _buildInfoRow(Icons.person_outline, 'Authority', widget.initiator),
-          _buildDivider(),
-          _buildInfoRow(Icons.business, 'Department', widget.dept),
-          _buildDivider(),
-          _buildInfoRow(Icons.category_outlined, 'Type', widget.inquiryType),
-          _buildDivider(),
-          _buildInfoRow(Icons.assignment_ind_outlined, 'Assigned To', widget.assignedTo),
-          const SizedBox(height: 24),
-          _buildDivider(),
-          const SizedBox(height: 20),
-          Row(
-            children: [
-              Icon(Icons.description_outlined, size: 20, color: Colors.blue[700]),
-              const SizedBox(width: 10),
-              const Text(
-                'Description',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black87,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Html(
-            data: widget.description,
-            style: {
-              "body": Style(
-                margin: Margins.zero,
-                padding: HtmlPaddings.zero,
-                fontSize: FontSize(15),
-                lineHeight: const LineHeight(1.6),
-                color: Colors.black87,
-              ),
-            },
-          ),
-          const SizedBox(height: 24),
-          _buildDivider(),
-          const SizedBox(height: 20),
-          Row(
-            children: [
-              Icon(Icons.article_outlined, size: 20, color: Colors.blue[700]),
-              const SizedBox(width: 10),
-              const Text(
-                'Terms of Reference',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black87,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Html(
-            data: widget.tors,
-            style: {
-              "body": Style(
-                margin: Margins.zero,
-                padding: HtmlPaddings.zero,
-                fontSize: FontSize(15),
-                lineHeight: const LineHeight(1.6),
-                color: Colors.black87,
-              ),
-            },
-          ),
-        ],
-      ),
+  Widget _buildDetailsCard() {
+    return _sectionCard(
+      title: 'Inquiry Details',
+      icon: Icons.info_outline,
+      children: [
+        _infoRow('Initiated By', i.initiator),
+        _infoRow('Department', i.department),
+        _infoRow('Type', i.inquiryType),
+        _infoRow('Assigned To', i.assignedTo),
+        const SizedBox(height: 16),
+        const Divider(height: 1),
+        const SizedBox(height: 16),
+        _htmlSection('Description', i.description),
+        const SizedBox(height: 24),
+        _htmlSection('Terms of Reference (TOR)', i.tors),
+      ],
     );
   }
 
-  /// Builds the team members card.
   Widget _buildTeamMembersCard() {
-    return _buildSectionCard(
+    return _sectionCard(
       title: 'Team Members',
-      icon: Icons.group_outlined,
-      child: widget.teamMembers.isEmpty
-          ? _buildEmptyState('No team members assigned')
-          : Wrap(
-        spacing: 8,
-        runSpacing: 8,
-        children: widget.teamMembers.map((member) => _buildChip(member)).toList(),
-      ),
+      icon: Icons.group,
+      children: i.teamMembers.isEmpty
+          ? [_empty('No team members assigned')]
+          : [Wrap(spacing: 8, runSpacing: 8, children: i.teamMembers.map((m) => _chip(m)).toList())],
     );
   }
 
-  /// Builds the recommendations card.
   Widget _buildRecommendationsCard() {
-    return _buildSectionCard(
+    return _sectionCard(
       title: 'Recommendations',
       icon: Icons.lightbulb_outline,
-      showAddButton: true,
-      onAddPressed: _addRecommendation,
-      child: _recommendations.isEmpty
-          ? _buildEmptyState('No recommendations available')
-          : Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: _recommendations.asMap().entries.map((entry) {
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  margin: const EdgeInsets.only(top: 4),
-                  width: 6,
-                  height: 6,
-                  decoration: BoxDecoration(
-                    color: Colors.blue[700],
-                    shape: BoxShape.circle,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    entry.value.toString(),
-                    style: const TextStyle(
-                      fontSize: 15,
-                      color: Colors.black87,
-                      height: 1.5,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          );
-        }).toList(),
-      ),
+      addAction: _addRecommendation,
+      children: recommendations.isEmpty
+          ? [_empty('No recommendations yet')]
+          : recommendations.map((r) => _bulletText(r.toString())).toList(),
     );
   }
 
-  /// Builds the visits card.
   Widget _buildVisitsCard() {
-    return _buildSectionCard(
-      title: 'Visits',
+    return _sectionCard(
+      title: 'Field Visits',
       icon: Icons.location_on_outlined,
-      showAddButton: true,
-      onAddPressed: _addVisit,
-      child: _visits.isEmpty
-          ? _buildEmptyState('No visits recorded')
-          : Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: _visits.asMap().entries.map((entry) {
-          final visitData = entry.value is Map ? entry.value as Map<String, String> : {};
-          return Container(
-            margin: const EdgeInsets.only(bottom: 12),
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.grey[50],
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.grey[200]!),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Icon(Icons.check_circle, color: Colors.green[600], size: 20),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'Visit ${entry.key + 1}',
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.black87,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                if (visitData.isNotEmpty)
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildVisitInfoRow('Date', visitData['date'] ?? ''),
-                      _buildVisitInfoRow('Time', visitData['time'] ?? ''),
-                      _buildVisitInfoRow('Driver', visitData['driver'] ?? ''),
-                      _buildVisitInfoRow('Vehicle', visitData['vehicle'] ?? ''),
-                      _buildVisitInfoRow('Findings', visitData['findings'] ?? ''),
-                    ],
-                  )
-                else
-                  Text(
-                    entry.value.toString(),
-                    style: const TextStyle(
-                      fontSize: 15,
-                      color: Colors.black87,
-                    ),
-                  ),
-              ],
-            ),
-          );
-        }).toList(),
-      ),
-    );
-  }
-
-  /// Builds the requested documents card.
-  Widget _buildRequestedDocumentsCard() {
-    return _buildSectionCard(
-      title: 'Requested Documents',
-      icon: Icons.description_outlined,
-      showAddButton: true,
-      onAddPressed: _addDocument,
-      child: _documents.isEmpty
-          ? _buildEmptyState('No documents requested')
-          : Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: _documents.asMap().entries.map((entry) {
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  margin: const EdgeInsets.only(top: 4),
-                  width: 6,
-                  height: 6,
-                  decoration: BoxDecoration(
-                    color: Colors.blue[700],
-                    shape: BoxShape.circle,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    entry.value.toString(),
-                    style: const TextStyle(
-                      fontSize: 15,
-                      color: Colors.black87,
-                      height: 1.5,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          );
-        }).toList(),
-      ),
-    );
-  }
-
-  /// Builds a reusable section card.
-  Widget _buildSectionCard({
-    required String title,
-    required IconData icon,
-    required Widget child,
-    bool showAddButton = false,
-    VoidCallback? onAddPressed,
-  }) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
+      addAction: _addVisit,
+      children: visits.isEmpty
+          ? [_empty('No visits recorded')]
+          : visits.map((v) {
+        final data = v is Map<String, dynamic> ? v : {};
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: Colors.grey[50],
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.grey.shade300),
           ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 children: [
-                  Icon(icon, size: 22, color: Colors.blue[700]),
-                  const SizedBox(width: 10),
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.black87,
-                    ),
-                  ),
+                  const Icon(Icons.directions_car, size: 18),
+                  const SizedBox(width: 8),
+                  const Text('Field Visit', style: TextStyle(fontWeight: FontWeight.bold)),
                 ],
               ),
-              if (showAddButton)
-                GestureDetector(
-                  onTap: onAddPressed,
-                  child: Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(
-                      color: Colors.blue[50],
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.blue[200]!),
-                    ),
-                    child: Icon(
-                      Icons.add,
-                      size: 20,
-                      color: Colors.blue[700],
-                    ),
-                  ),
-                ),
+              const SizedBox(height: 8),
+              if (data.isNotEmpty) ...[
+                _visitRow('Date', data['date']),
+                _visitRow('Time', data['time']),
+                _visitRow('Driver', data['driver']),
+                _visitRow('Vehicle', data['vehicle']),
+                _visitRow('Findings', data['findings'] ?? 'No findings recorded'),
+              ],
             ],
           ),
-          const SizedBox(height: 16),
-          child,
-        ],
-      ),
+        );
+      }).toList(),
     );
   }
 
-  /// Builds an info row for visit details.
-  Widget _buildVisitInfoRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 70,
-            child: Text(
-              '$label:',
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-                color: Colors.grey[700],
-              ),
-            ),
-          ),
-          Expanded(
-            child: Text(
-              value,
-              style: const TextStyle(
-                fontSize: 13,
-                color: Colors.black87,
-              ),
-            ),
-          ),
-        ],
-      ),
+  Widget _buildDocumentsCard() {
+    return _sectionCard(
+      title: 'Requested Documents',
+      icon: Icons.description_outlined,
+      addAction: _addDocument,
+      children: documents.isEmpty
+          ? [_empty('No documents requested')]
+          : documents.map((d) => _bulletText(d.toString())).toList(),
     );
   }
 
-  /// Builds an info row with icon, label, and value.
-  Widget _buildInfoRow(IconData icon, String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, size: 20, color: Colors.grey[600]),
-          const SizedBox(width: 12),
-          Expanded(
-            flex: 2,
-            child: Text(
-              label,
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                color: Colors.grey[700],
-              ),
-            ),
-          ),
-          Expanded(
-            flex: 3,
-            child: Text(
-              value,
-              style: const TextStyle(
-                fontSize: 15,
-                color: Colors.black87,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// Builds a status badge.
-  Widget _buildStatusBadge(String text, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withOpacity(0.3)),
-      ),
-      child: Text(
-        text,
-        style: TextStyle(
-          fontSize: 13,
-          fontWeight: FontWeight.w600,
-          color: color,
-        ),
-      ),
-    );
-  }
-
-  /// Builds a priority badge.
-  Widget _buildPriorityBadge(String text, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withOpacity(0.3)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.flag, size: 14, color: color),
-          const SizedBox(width: 4),
-          Text(
-            text,
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: color,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// Builds a chip for team members.
-  Widget _buildChip(String label) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.blue[50],
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.blue[200]!),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 14,
-          color: Colors.blue[900],
-          fontWeight: FontWeight.w500,
-        ),
-      ),
-    );
-  }
-
-  /// Builds an empty state widget.
-  Widget _buildEmptyState(String message) {
-    return Center(
+  // Reusable UI Components
+  Widget _sectionCard({
+    required String title,
+    required IconData icon,
+    VoidCallback? addAction,
+    required List<Widget> children,
+  }) {
+    return Card(
       child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Text(
-          message,
-          style: TextStyle(
-            fontSize: 14,
-            color: Colors.grey[600],
-            fontStyle: FontStyle.italic,
-          ),
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Icon(icon, color: Colors.blue[700]),
+                    const SizedBox(width: 10),
+                    Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  ],
+                ),
+                if (addAction != null)
+                  IconButton(
+                    icon: Icon(Icons.add_circle_outline, color: Colors.blue[700]),
+                    onPressed: addAction,
+                  ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            ...children,
+          ],
         ),
       ),
     );
   }
 
-  /// Builds a divider.
-  Widget _buildDivider() {
-    return Divider(
-      height: 1,
-      thickness: 1,
-      color: Colors.grey[200],
-    );
-  }
+  Widget _infoRow(String label, String value) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 6),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(width: 110, child: Text('$label:', style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.grey))),
+        Expanded(child: Text(value, style: const TextStyle(fontSize: 15))),
+      ],
+    ),
+  );
 
-  /// Gets color based on status.
-  Color _getStatusColor(String status) {
-    switch (status.toLowerCase()) {
-      case 'completed':
-      case 'closed':
-        return Colors.green;
-      case 'in progress':
-      case 'ongoing':
-        return Colors.blue;
-      case 'pending':
-        return Colors.orange;
-      case 'rejected':
-        return Colors.red;
-      default:
-        return Colors.grey;
-    }
-  }
+  Widget _visitRow(String label, String? value) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 3),
+    child: RichText(
+      text: TextSpan(
+        style: const TextStyle(color: Colors.black87, fontSize: 14),
+        children: [
+          TextSpan(text: '$label: ', style: const TextStyle(fontWeight: FontWeight.w600)),
+          TextSpan(text: value ?? '-'),
+        ],
+      ),
+    ),
+  );
 
-  /// Gets color based on priority.
-  Color _getPriorityColor(String priority) {
-    switch (priority.toLowerCase()) {
-      case 'high':
-      case 'urgent':
-        return Colors.red;
-      case 'medium':
-        return Colors.orange;
-      case 'low':
-        return Colors.green;
-      default:
-        return Colors.grey;
-    }
-  }
+  Widget _htmlSection(String title, String html) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+      const SizedBox(height: 8),
+      Html(
+        data: html.isEmpty ? '<p>No $title provided</p>' : html,
+        style: {
+          "body": Style(fontSize: FontSize(15), lineHeight: LineHeight(1.6), color: Colors.black87),
+        },
+      ),
+    ],
+  );
+
+  Widget _bulletText(String text) => Padding(
+    padding: const EdgeInsets.only(bottom: 12),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('• ', style: TextStyle(fontSize: 18, color: Colors.blue)),
+        Expanded(child: Text(text, style: const TextStyle(fontSize: 15, height: 1.5))),
+      ],
+    ),
+  );
+
+  Widget _chip(String text) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+    decoration: BoxDecoration(color: Colors.blue.shade50, borderRadius: BorderRadius.circular(20)),
+    child: Text(text, style: TextStyle(color: Colors.blue.shade900, fontWeight: FontWeight.w500)),
+  );
+
+  Widget _badge(String text, Color color) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+    decoration: BoxDecoration(color: color.withOpacity(0.15), borderRadius: BorderRadius.circular(20)),
+    child: Text(text, style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 13)),
+  );
+
+  Widget _empty(String message) => Center(
+    child: Padding(
+      padding: const EdgeInsets.all(16),
+      child: Text(message, style: TextStyle(color: Colors.grey[600], fontStyle: FontStyle.italic)),
+    ),
+  );
 }
