@@ -30,10 +30,14 @@ class _InquiryDetailsScreenState extends State<InquiryDetailsScreen> {
     visits = List.from(widget.inquiry.visits);
   }
 
+  // Clean access to inquiry
+  AssignToMeModel get i => widget.inquiry;
+
   void _addRecommendation() => Navigator.push(
     context,
     MaterialPageRoute(
       builder: (_) => AddRecommendationScreen(
+        inquiryId: i.id,
         onAddRecommendation: (text) {
           setState(() => recommendations.add(text));
           Navigator.pop(context);
@@ -46,6 +50,7 @@ class _InquiryDetailsScreenState extends State<InquiryDetailsScreen> {
     context,
     MaterialPageRoute(
       builder: (_) => AddVisitsScreen(
+        inquiryId: i.id,
         onAddVisit: (visit) {
           setState(() => visits.add(visit));
           Navigator.pop(context);
@@ -58,6 +63,7 @@ class _InquiryDetailsScreenState extends State<InquiryDetailsScreen> {
     context,
     MaterialPageRoute(
       builder: (_) => RequestedDocumentsScreen(
+        inquiryId: i.id,
         onAddDocument: (doc) {
           setState(() => documents.add(doc));
           Navigator.pop(context);
@@ -66,13 +72,8 @@ class _InquiryDetailsScreenState extends State<InquiryDetailsScreen> {
     ),
   );
 
-  // Helper to avoid repeating widget.inquiry everywhere
-  AssignToMeModel get i => widget.inquiry;
-
   @override
-  Widget build
-
-      (BuildContext context) {
+  Widget build(BuildContext context) {
     final isChairperson = i.isChairperson;
 
     return Scaffold(
@@ -118,13 +119,14 @@ class _InquiryDetailsScreenState extends State<InquiryDetailsScreen> {
             _buildVisitsCard(),
             const SizedBox(height: 16),
             _buildDocumentsCard(),
-            const SizedBox(height: 32),
+            const SizedBox(height: 40),
           ],
         ),
       ),
     );
   }
 
+  // HEADER — Clean, no Ref ID
   Widget _buildHeader(bool isChairperson) {
     return Card(
       child: Padding(
@@ -137,10 +139,10 @@ class _InquiryDetailsScreenState extends State<InquiryDetailsScreen> {
                 Expanded(
                   child: Text(
                     i.title,
-                    style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                    style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.black87),
                   ),
                 ),
-                if (isChairperson) const Icon(Icons.star, color: Colors.amber, size: 28),
+                if (isChairperson) const Icon(Icons.star, color: Colors.amber, size: 30),
               ],
             ),
             const SizedBox(height: 16),
@@ -154,7 +156,22 @@ class _InquiryDetailsScreenState extends State<InquiryDetailsScreen> {
               ],
             ),
             const SizedBox(height: 12),
-            Text('Ref: #${i.id} • ${i.formattedDate}', style: TextStyle(color: Colors.grey[600], fontSize: 13)),
+            if (i.timeFrame.isNotEmpty)
+              Row(
+                children: [
+                  Icon(Icons.schedule, size: 16, color: Colors.teal.shade700),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Time Frame: ${i.timeFrame}',
+                    style: TextStyle(color: Colors.teal.shade700, fontWeight: FontWeight.w600, fontSize: 14),
+                  ),
+                ],
+              ),
+            const SizedBox(height: 8),
+            Text(
+              i.formattedDate,
+              style: TextStyle(color: Colors.grey[600], fontSize: 13),
+            ),
           ],
         ),
       ),
@@ -170,11 +187,11 @@ class _InquiryDetailsScreenState extends State<InquiryDetailsScreen> {
         _infoRow('Department', i.department),
         _infoRow('Type', i.inquiryType),
         _infoRow('Assigned To', i.assignedTo),
-        const SizedBox(height: 16),
-        const Divider(height: 1),
-        const SizedBox(height: 16),
+        const SizedBox(height: 20),
+        const Divider(height: 1, color: Colors.grey),
+        const SizedBox(height: 20),
         _htmlSection('Description', i.description),
-        const SizedBox(height: 24),
+        const SizedBox(height: 28),
         _htmlSection('Terms of Reference (TOR)', i.tors),
       ],
     );
@@ -186,7 +203,7 @@ class _InquiryDetailsScreenState extends State<InquiryDetailsScreen> {
       icon: Icons.group,
       children: i.teamMembers.isEmpty
           ? [_empty('No team members assigned')]
-          : [Wrap(spacing: 8, runSpacing: 8, children: i.teamMembers.map((m) => _chip(m)).toList())],
+          : [Wrap(spacing: 10, runSpacing: 10, children: i.teamMembers.map((m) => _chip(m)).toList())],
     );
   }
 
@@ -196,7 +213,7 @@ class _InquiryDetailsScreenState extends State<InquiryDetailsScreen> {
       icon: Icons.lightbulb_outline,
       addAction: _addRecommendation,
       children: recommendations.isEmpty
-          ? [_empty('No recommendations yet')]
+          ? [_empty('No recommendations added yet')]
           : recommendations.map((r) => _bulletText(r.toString())).toList(),
     );
   }
@@ -211,8 +228,8 @@ class _InquiryDetailsScreenState extends State<InquiryDetailsScreen> {
           : visits.map((v) {
         final data = v is Map<String, dynamic> ? v : {};
         return Container(
-          margin: const EdgeInsets.only(bottom: 12),
-          padding: const EdgeInsets.all(14),
+          margin: const EdgeInsets.only(bottom: 14),
+          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: Colors.grey[50],
             borderRadius: BorderRadius.circular(12),
@@ -223,12 +240,12 @@ class _InquiryDetailsScreenState extends State<InquiryDetailsScreen> {
             children: [
               Row(
                 children: [
-                  const Icon(Icons.directions_car, size: 18),
+                  Icon(Icons.directions_car, color: Colors.blue[700], size: 20),
                   const SizedBox(width: 8),
                   const Text('Field Visit', style: TextStyle(fontWeight: FontWeight.bold)),
                 ],
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 12),
               if (data.isNotEmpty) ...[
                 _visitRow('Date', data['date']),
                 _visitRow('Time', data['time']),
@@ -254,7 +271,7 @@ class _InquiryDetailsScreenState extends State<InquiryDetailsScreen> {
     );
   }
 
-  // Reusable UI Components
+  // Reusable Components
   Widget _sectionCard({
     required String title,
     required IconData icon,
@@ -262,6 +279,8 @@ class _InquiryDetailsScreenState extends State<InquiryDetailsScreen> {
     required List<Widget> children,
   }) {
     return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -297,7 +316,10 @@ class _InquiryDetailsScreenState extends State<InquiryDetailsScreen> {
     child: Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SizedBox(width: 110, child: Text('$label:', style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.grey))),
+        SizedBox(
+          width: 120,
+          child: Text('$label:', style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.grey)),
+        ),
         Expanded(child: Text(value, style: const TextStyle(fontSize: 15))),
       ],
     ),
@@ -320,11 +342,12 @@ class _InquiryDetailsScreenState extends State<InquiryDetailsScreen> {
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
       Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-      const SizedBox(height: 8),
+      const SizedBox(height: 10),
       Html(
         data: html.isEmpty ? '<p>No $title provided</p>' : html,
         style: {
           "body": Style(fontSize: FontSize(15), lineHeight: LineHeight(1.6), color: Colors.black87),
+          "p": Style(margin: Margins.symmetric(vertical: 4)),
         },
       ),
     ],
@@ -335,7 +358,7 @@ class _InquiryDetailsScreenState extends State<InquiryDetailsScreen> {
     child: Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('• ', style: TextStyle(fontSize: 18, color: Colors.blue)),
+        const Text('• ', style: TextStyle(fontSize: 20, color: Colors.blue)),
         Expanded(child: Text(text, style: const TextStyle(fontSize: 15, height: 1.5))),
       ],
     ),
@@ -343,19 +366,26 @@ class _InquiryDetailsScreenState extends State<InquiryDetailsScreen> {
 
   Widget _chip(String text) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-    decoration: BoxDecoration(color: Colors.blue.shade50, borderRadius: BorderRadius.circular(20)),
-    child: Text(text, style: TextStyle(color: Colors.blue.shade900, fontWeight: FontWeight.w500)),
+    decoration: BoxDecoration(
+      color: Colors.blue.shade50,
+      borderRadius: BorderRadius.circular(20),
+      border: Border.all(color: Colors.blue.shade200),
+    ),
+    child: Text(text, style: TextStyle(color: Colors.blue.shade900, fontWeight: FontWeight.w600)),
   );
 
   Widget _badge(String text, Color color) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-    decoration: BoxDecoration(color: color.withOpacity(0.15), borderRadius: BorderRadius.circular(20)),
+    decoration: BoxDecoration(
+      color: color.withOpacity(0.15),
+      borderRadius: BorderRadius.circular(20),
+    ),
     child: Text(text, style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 13)),
   );
 
-  Widget _empty(String message) => Center(
-    child: Padding(
-      padding: const EdgeInsets.all(16),
+  Widget _empty(String message) => Padding(
+    padding: const EdgeInsets.all(20),
+    child: Center(
       child: Text(message, style: TextStyle(color: Colors.grey[600], fontStyle: FontStyle.italic)),
     ),
   );
