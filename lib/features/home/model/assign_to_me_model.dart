@@ -1,4 +1,6 @@
-// lib/models/assign_to_me_model.dart
+// lib/features/home/model/assign_to_me_model.dart
+// FULLY UPDATED – WITH parsedRecommendations
+
 import 'package:flutter/material.dart';
 
 class AssignToMeModel {
@@ -8,7 +10,7 @@ class AssignToMeModel {
   final String tors;
   final String timeFrame;
   final String priority;        // "1" = Low, "2" = Medium, "3" = High
-  final String status;         // "0" = Submitted, "1" = Recommended, etc.
+  final String status;         // "0" = Submitted, etc.
   final String inquiryType;
   final String department;
   final String initiator;
@@ -87,11 +89,10 @@ class AssignToMeModel {
   }
 }
 
-// FINAL EXTENSION — 100% CORRECT STATUS & PRIORITY
+// EXTENSION WITH ALL GOODIES + NEW parsedRecommendations
 extension AssignToMeModelX on AssignToMeModel {
   bool get isChairperson => userRole.toLowerCase().contains('chair');
 
-  // STATUS MAPPING AS PER YOUR LATEST REQUIREMENT
   String get statusText => switch (status) {
     '0' => 'Submitted',
     '1' => 'Recommended',
@@ -102,7 +103,6 @@ extension AssignToMeModelX on AssignToMeModel {
     _ => 'Unknown',
   };
 
-  // PRIORITY: 1=Low, 2=Medium, 3=High
   String get priorityText => switch (priority) {
     '1' => 'Low',
     '2' => 'Medium',
@@ -110,21 +110,20 @@ extension AssignToMeModelX on AssignToMeModel {
     _ => 'Normal',
   };
 
-  // Beautiful, meaningful colors
   Color get statusColor => switch (status) {
-    '0' => Colors.purple.shade600,      // Submitted
-    '1' => Colors.cyan.shade700,        // Recommended
-    '2' => Colors.blue.shade700,        // Assigned
-    '3' => Colors.orange.shade700,      // Under Review
-    '4' => Colors.green.shade700,       // Completed
-    '5' => Colors.red.shade700,         // Rejected
+    '0' => Colors.purple.shade600,
+    '1' => Colors.cyan.shade700,
+    '2' => Colors.blue.shade700,
+    '3' => Colors.orange.shade700,
+    '4' => Colors.green.shade700,
+    '5' => Colors.red.shade700,
     _ => Colors.grey.shade600,
   };
 
   Color get priorityColor => switch (priority) {
-    '1' => Colors.green.shade600,       // Low = Green
-    '2' => Colors.orange.shade700,      // Medium = Orange
-    '3' => Colors.red.shade700,         // High = Red
+    '1' => Colors.green.shade600,
+    '2' => Colors.orange.shade700,
+    '3' => Colors.red.shade700,
     _ => Colors.grey.shade600,
   };
 
@@ -132,4 +131,27 @@ extension AssignToMeModelX on AssignToMeModel {
       '${createdAt.day.toString().padLeft(2, '0')}/'
           '${createdAt.month.toString().padLeft(2, '0')}/'
           '${createdAt.year}';
+
+  // NEW: Clean, safe parsing for recommendations
+  List<Map<String, String>> get parsedRecommendations {
+    return recommendations.map((item) {
+      if (item is Map<String, dynamic>) {
+        return {
+          'recommendation':
+          (item['recommendation'] ?? item['text'] ?? item['description'] ?? '')
+              .toString()
+              .trim(),
+          'penalty_imposed':
+          (item['penalty_imposed'] ?? item['penalty'] ?? 'None')
+              .toString()
+              .trim(),
+        };
+      }
+      // Old format: just a string
+      return {
+        'recommendation': item.toString().trim(),
+        'penalty_imposed': 'None',
+      };
+    }).toList();
+  }
 }

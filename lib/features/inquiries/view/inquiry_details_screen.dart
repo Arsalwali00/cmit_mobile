@@ -30,7 +30,6 @@ class _InquiryDetailsScreenState extends State<InquiryDetailsScreen> {
     visits = List.from(widget.inquiry.visits);
   }
 
-  // Clean access to inquiry
   AssignToMeModel get i => widget.inquiry;
 
   void _addRecommendation() => Navigator.push(
@@ -114,7 +113,7 @@ class _InquiryDetailsScreenState extends State<InquiryDetailsScreen> {
             const SizedBox(height: 16),
             _buildTeamMembersCard(),
             const SizedBox(height: 16),
-            _buildRecommendationsCard(),
+            _buildRecommendationsCard(), // CLEAN & SIMPLE NOW
             const SizedBox(height: 16),
             _buildVisitsCard(),
             const SizedBox(height: 16),
@@ -126,7 +125,6 @@ class _InquiryDetailsScreenState extends State<InquiryDetailsScreen> {
     );
   }
 
-  // HEADER — Clean, no Ref ID
   Widget _buildHeader(bool isChairperson) {
     return Card(
       child: Padding(
@@ -168,10 +166,7 @@ class _InquiryDetailsScreenState extends State<InquiryDetailsScreen> {
                 ],
               ),
             const SizedBox(height: 8),
-            Text(
-              i.formattedDate,
-              style: TextStyle(color: Colors.grey[600], fontSize: 13),
-            ),
+            Text(i.formattedDate, style: TextStyle(color: Colors.grey[600], fontSize: 13)),
           ],
         ),
       ),
@@ -207,14 +202,59 @@ class _InquiryDetailsScreenState extends State<InquiryDetailsScreen> {
     );
   }
 
+  // RECOMMENDATIONS — CLEAN, SIMPLE, NO BOXES, NO ICONS
   Widget _buildRecommendationsCard() {
+    final parsed = i.parsedRecommendations;
+
     return _sectionCard(
       title: 'Recommendations',
       icon: Icons.lightbulb_outline,
       addAction: _addRecommendation,
-      children: recommendations.isEmpty
+      children: parsed.isEmpty
           ? [_empty('No recommendations added yet')]
-          : recommendations.map((r) => _bulletText(r.toString())).toList(),
+          : parsed.asMap().entries.map((entry) {
+        final rec = entry.value;
+        final isLast = entry.key == parsed.length - 1;
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Recommendation
+            const Text(
+              'Recommendation:',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black87),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              rec['recommendation']?.isNotEmpty == true ? rec['recommendation']! : '—',
+              style: const TextStyle(fontSize: 15, height: 1.5),
+            ),
+            const SizedBox(height: 12),
+
+            // Penalty Imposed
+            const Text(
+              'Penalty Imposed:',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.redAccent),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              rec['penalty_imposed'] == 'None' ? 'None' : rec['penalty_imposed']!,
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: rec['penalty_imposed'] == 'None' ? Colors.grey.shade600 : Colors.red.shade700,
+              ),
+            ),
+
+            // Divider except for last item
+            if (!isLast)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 20),
+                child: Divider(color: Colors.grey.shade300),
+              ),
+          ],
+        );
+      }).toList(),
     );
   }
 
@@ -271,7 +311,7 @@ class _InquiryDetailsScreenState extends State<InquiryDetailsScreen> {
     );
   }
 
-  // Reusable Components
+  // Reusable UI Components
   Widget _sectionCard({
     required String title,
     required IconData icon,
@@ -316,10 +356,7 @@ class _InquiryDetailsScreenState extends State<InquiryDetailsScreen> {
     child: Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SizedBox(
-          width: 120,
-          child: Text('$label:', style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.grey)),
-        ),
+        SizedBox(width: 120, child: Text('$label:', style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.grey))),
         Expanded(child: Text(value, style: const TextStyle(fontSize: 15))),
       ],
     ),
