@@ -1,5 +1,5 @@
 // lib/features/home/model/assign_to_me_model.dart
-// FULLY UPDATED – WITH parsedRecommendations
+// FULLY UPDATED – WITH robust _parseVisits that handles all findings formats
 
 import 'package:flutter/material.dart';
 
@@ -22,6 +22,7 @@ class AssignToMeModel {
 
   final List<dynamic> recommendations;
   final List<dynamic> visits;
+  final List<dynamic> requiredDocuments;
 
   const AssignToMeModel({
     required this.id,
@@ -41,14 +42,15 @@ class AssignToMeModel {
     required this.createdAt,
     this.recommendations = const [],
     this.visits = const [],
+    this.requiredDocuments = const [],
   });
 
   factory AssignToMeModel.fromJson(Map<String, dynamic> json) {
     return AssignToMeModel(
       id: int.tryParse(json['id'].toString()) ?? 0,
-      title: (json['title'] ?? '').toString().trim(),
-      description: (json['description'] ?? '').toString(),
-      tors: (json['tors'] ?? json['tor'] ?? '').toString(),
+      title: _stripHtml((json['title'] ?? '').toString().trim()),
+      description: _stripHtml((json['description'] ?? '').toString()),
+      tors: _stripHtml((json['tors'] ?? json['tor'] ?? '').toString()),
       timeFrame: (json['time_frame'] ?? json['timeFrame'] ?? '').toString().trim(),
       priority: (json['priority'] ?? '').toString(),
       status: (json['status'] ?? '').toString(),
@@ -61,7 +63,8 @@ class AssignToMeModel {
       userRole: (json['user_role'] ?? json['role'] ?? 'Member').toString().trim(),
       createdAt: DateTime.tryParse(json['created_at']?.toString() ?? '') ?? DateTime.now(),
       recommendations: json['recommendations'] ?? [],
-      visits: json['visits'] ?? [],
+      visits: _parseVisits(json['visits'] ?? []),
+      requiredDocuments: json['required_documents'] ?? [],
     );
   }
 
@@ -70,6 +73,28 @@ class AssignToMeModel {
     if (value is String) return value.trim();
     if (value is Map) return (value['name'] ?? value['title'] ?? '').toString().trim();
     return value.toString().trim();
+  }
+
+  // Strip HTML tags from strings
+  static String _stripHtml(String htmlString) {
+    if (htmlString.isEmpty) return '';
+
+    // Remove HTML tags
+    String stripped = htmlString.replaceAll(RegExp(r'<[^>]*>'), '');
+
+    // Decode common HTML entities
+    stripped = stripped
+        .replaceAll('&nbsp;', ' ')
+        .replaceAll('&amp;', '&')
+        .replaceAll('&lt;', '<')
+        .replaceAll('&gt;', '>')
+        .replaceAll('&quot;', '"')
+        .replaceAll('&#39;', "'");
+
+    // Clean up multiple spaces and trim
+    stripped = stripped.replaceAll(RegExp(r'\s+'), ' ').trim();
+
+    return stripped;
   }
 
   static List<String> _parseTeamMembers(dynamic data) {
@@ -87,9 +112,129 @@ class AssignToMeModel {
       return '';
     }).where((name) => name.isNotEmpty).toList();
   }
+
+  // ROBUST VISITS PARSING - Handles list of findings OR legacy string format
+  static List<dynamic> _parseVisits(dynamic data) {
+    if (data == null || data is! List) return [];
+
+    return data.map((visit) {
+      if (visit is! Map<String, dynamic>) return visit;
+
+      final Map<String, dynamic> processedVisit = Map.from(visit);
+
+      final dynamic findingsData = visit['findings'];
+
+      List<Map<String, dynamic>> processedFindings = [];
+
+      if (findingsData is List) {
+        // Standard format: list of finding maps
+        processedFindings = findingsData.map((finding) {
+          if (finding is! Map<String, dynamic>) {
+            // Safety fallback
+            return <String, dynamic>{
+              'user': visit['officer'] ?? 'Unknown',
+              'findings': _stripHtml(finding.toString()),
+            };
+          }
+
+          final Map<String, dynamic> f = Map.from(finding);
+          if (f['findings'] != null) {
+            f['findings'] = _stripHtml(f['findings'].toString());
+          }
+          if (f['user'] == null) {
+            f['user'] = visit['officer'] ?? 'Unknown Officer';
+          }
+          return f;
+        }).cast<Map<String, dynamic>>().toList();
+      } else if (findingsData is String && findingsData.trim().isNotEmpty) {
+        // Legacy format: findings is a raw HTML string
+        processedFindings = [
+          {
+            'id': 0,
+            'visit_id': visit['id']?.toString() ?? '',
+            'user': visit['officer'] ?? 'Unknown Officer',
+            'findings': _stripHtml(findingsData),
+          }
+        ];
+      } else {
+        // Empty or null
+        processedFindings = [];
+      }
+
+      processedVisit['findings'] = processedFindings;
+      return processedVisit;
+    }).toList();
+  }
+
+  // Convert model back to JSON
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'title': title,
+      'description': description,
+      'tors': tors,
+      'time_frame': timeFrame,
+      'priority': priority,
+      'status': status,
+      'inquiry_type': inquiryType,
+      'department': department,
+      'initiator': initiator,
+      'recommender': recommender,
+      'assigned_to': assignedTo,
+      'team_members': teamMembers,
+      'user_role': userRole,
+      'created_at': createdAt.toIso8601String(),
+      'recommendations': recommendations,
+      'visits': visits,
+      'required_documents': requiredDocuments,
+    };
+  }
+
+  // Copy with method for immutability
+  AssignToMeModel copyWith({
+    int? id,
+    String? title,
+    String? description,
+    String? tors,
+    String? timeFrame,
+    String? priority,
+    String? status,
+    String? inquiryType,
+    String? department,
+    String? initiator,
+    String? recommender,
+    String? assignedTo,
+    List<String>? teamMembers,
+    String? userRole,
+    DateTime? createdAt,
+    List<dynamic>? recommendations,
+    List<dynamic>? visits,
+    List<dynamic>? requiredDocuments,
+  }) {
+    return AssignToMeModel(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      description: description ?? this.description,
+      tors: tors ?? this.tors,
+      timeFrame: timeFrame ?? this.timeFrame,
+      priority: priority ?? this.priority,
+      status: status ?? this.status,
+      inquiryType: inquiryType ?? this.inquiryType,
+      department: department ?? this.department,
+      initiator: initiator ?? this.initiator,
+      recommender: recommender ?? this.recommender,
+      assignedTo: assignedTo ?? this.assignedTo,
+      teamMembers: teamMembers ?? this.teamMembers,
+      userRole: userRole ?? this.userRole,
+      createdAt: createdAt ?? this.createdAt,
+      recommendations: recommendations ?? this.recommendations,
+      visits: visits ?? this.visits,
+      requiredDocuments: requiredDocuments ?? this.requiredDocuments,
+    );
+  }
 }
 
-// EXTENSION WITH ALL GOODIES + NEW parsedRecommendations
+// EXTENSION WITH ALL GOODIES
 extension AssignToMeModelX on AssignToMeModel {
   bool get isChairperson => userRole.toLowerCase().contains('chair');
 
@@ -132,7 +277,6 @@ extension AssignToMeModelX on AssignToMeModel {
           '${createdAt.month.toString().padLeft(2, '0')}/'
           '${createdAt.year}';
 
-  // NEW: Clean, safe parsing for recommendations
   List<Map<String, String>> get parsedRecommendations {
     return recommendations.map((item) {
       if (item is Map<String, dynamic>) {
@@ -147,11 +291,121 @@ extension AssignToMeModelX on AssignToMeModel {
               .trim(),
         };
       }
-      // Old format: just a string
       return {
         'recommendation': item.toString().trim(),
         'penalty_imposed': 'None',
       };
     }).toList();
+  }
+
+  List<VisitInfo> get parsedVisits {
+    return visits.map((visit) {
+      if (visit is Map<String, dynamic>) {
+        return VisitInfo.fromJson(visit);
+      }
+      return VisitInfo.empty();
+    }).toList();
+  }
+
+  List<FindingInfo> get allFindings {
+    return parsedVisits.expand((visit) => visit.findings).toList();
+  }
+
+  bool get hasVisits => visits.isNotEmpty;
+  bool get hasFindings => allFindings.isNotEmpty;
+  bool get hasRecommendations => recommendations.isNotEmpty;
+}
+
+// Helper class for Visit information
+class VisitInfo {
+  final int id;
+  final String vehicle;
+  final String officer;
+  final String driver;
+  final DateTime visitDate;
+  final String visitTime;
+  final List<FindingInfo> findings;
+
+  const VisitInfo({
+    required this.id,
+    required this.vehicle,
+    required this.officer,
+    required this.driver,
+    required this.visitDate,
+    required this.visitTime,
+    required this.findings,
+  });
+
+  factory VisitInfo.fromJson(Map<String, dynamic> json) {
+    return VisitInfo(
+      id: int.tryParse(json['id'].toString()) ?? 0,
+      vehicle: (json['vehicle'] ?? '').toString().trim(),
+      officer: (json['officer'] ?? '').toString().trim(),
+      driver: (json['driver'] ?? '').toString().trim(),
+      visitDate: DateTime.tryParse(json['visit_date']?.toString() ?? '') ?? DateTime.now(),
+      visitTime: (json['visit_time'] ?? '').toString().trim(),
+      findings: _parseFindings(json['findings'] ?? []),
+    );
+  }
+
+  factory VisitInfo.empty() {
+    return VisitInfo(
+      id: 0,
+      vehicle: '',
+      officer: '',
+      driver: '',
+      visitDate: DateTime.now(),
+      visitTime: '',
+      findings: [],
+    );
+  }
+
+  static List<FindingInfo> _parseFindings(dynamic data) {
+    if (data == null || data is! List) return [];
+
+    return data.map((finding) {
+      if (finding is Map<String, dynamic>) {
+        return FindingInfo.fromJson(finding);
+      }
+      return FindingInfo.empty();
+    }).toList();
+  }
+
+  String get formattedDate =>
+      '${visitDate.day.toString().padLeft(2, '0')}/'
+          '${visitDate.month.toString().padLeft(2, '0')}/'
+          '${visitDate.year}';
+}
+
+// Helper class for Finding information
+class FindingInfo {
+  final int id;
+  final String visitId;
+  final String user;
+  final String findings;
+
+  const FindingInfo({
+    required this.id,
+    required this.visitId,
+    required this.user,
+    required this.findings,
+  });
+
+  factory FindingInfo.fromJson(Map<String, dynamic> json) {
+    return FindingInfo(
+      id: int.tryParse(json['id'].toString()) ?? 0,
+      visitId: (json['visit_id'] ?? '').toString(),
+      user: (json['user'] ?? '').toString().trim(),
+      findings: (json['findings'] ?? '').toString().trim(),
+    );
+  }
+
+  factory FindingInfo.empty() {
+    return const FindingInfo(
+      id: 0,
+      visitId: '',
+      user: '',
+      findings: '',
+    );
   }
 }
