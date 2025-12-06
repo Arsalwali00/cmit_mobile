@@ -19,4 +19,7 @@ class API {
 
   // 🔹 Recommendation Inquiry Endpoint (New)
   static const String addRecommendationInquiry = "${ApiConfig.baseApiUrl}/add/recommendation/inquiries";
+
+  // Inside class API
+  static const String getVehicleDriverData = "${ApiConfig.baseApiUrl}/get/vehicle/driver/data";
 }
