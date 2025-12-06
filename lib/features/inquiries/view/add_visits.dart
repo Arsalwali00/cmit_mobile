@@ -1,16 +1,17 @@
 // lib/features/inquiries/view/add_visits.dart
 import 'package:flutter/material.dart';
-import 'package:cmit/core/vehicle_driver_service.dart'; // Adjust path if needed
+import 'package:cmit/core/vehicle_driver_service.dart';
 import 'package:cmit/features/inquiries/model/vehicle_driver_model.dart';
+import 'package:cmit/core/visit_inquiry_service.dart';
 
 class AddVisitsScreen extends StatefulWidget {
   final int inquiryId;
-  final Function(Map<String, String>) onAddVisit;
+  final VoidCallback? onVisitAdded; // ← Correct parameter name
 
   const AddVisitsScreen({
     super.key,
     required this.inquiryId,
-    required this.onAddVisit,
+    this.onVisitAdded,
   });
 
   @override
@@ -22,14 +23,14 @@ class _AddVisitsScreenState extends State<AddVisitsScreen> {
 
   DateTime? _selectedDate;
   TimeOfDay? _selectedTime;
-  String? _selectedDriverId;   // Now stores ID (e.g., "1")
-  String? _selectedVehicleId;  // Now stores ID (e.g., "2")
+  String? _selectedDriverId;
+  String? _selectedVehicleId;
 
-  // Live data from API
   Map<String, String> driversMap = {};
   Map<String, String> vehiclesMap = {};
 
   bool isLoading = true;
+  bool isSubmitting = false;
   String? errorMessage;
 
   @override
@@ -40,52 +41,77 @@ class _AddVisitsScreenState extends State<AddVisitsScreen> {
 
   Future<void> _fetchDriversAndVehicles() async {
     final result = await VehicleDriverService.getVehicleDriverData();
+    if (!mounted) return;
 
     if (result['success'] == true) {
-      final VehicleDriverModel data = result['data'];
+      final data = result['data'] as VehicleDriverModel;
       setState(() {
-        driversMap = data.drivers;   // { "1": "Ishtiyaq", "2": "Naveed Ahmed", ... }
-        vehiclesMap = data.vehicles; // { "1": "CMIT01", "2": "CMIT02", ... }
+        driversMap = data.drivers;
+        vehiclesMap = data.vehicles;
         isLoading = false;
       });
     } else {
       setState(() {
-        errorMessage = result['message'] ?? "Failed to load drivers & vehicles";
+        errorMessage = result['message'] ?? "Failed to load data";
         isLoading = false;
       });
     }
   }
 
   Future<void> _selectDate() async {
-    final DateTime? picked = await showDatePicker(
+    final picked = await showDatePicker(
       context: context,
       initialDate: DateTime.now(),
-      firstDate: DateTime.now().subtract(const Duration(days: 365)),
+      firstDate: DateTime.now(),
       lastDate: DateTime.now().add(const Duration(days: 365)),
     );
     if (picked != null) setState(() => _selectedDate = picked);
   }
 
   Future<void> _selectTime() async {
-    final TimeOfDay? picked = await showTimePicker(
+    final picked = await showTimePicker(
       context: context,
       initialTime: TimeOfDay.now(),
     );
     if (picked != null) setState(() => _selectedTime = picked);
   }
 
-  void _submit() {
-    if (_formKey.currentState!.validate()) {
-      final visitData = {
-        'date': _selectedDate!.toIso8601String().split('T').first,
-        'time': '${_selectedTime!.hour.toString().padLeft(2, '0')}:${_selectedTime!.minute.toString().padLeft(2, '0')}',
-        'driver_id': _selectedDriverId!,
-        'vehicle_id': _selectedVehicleId!,
-        'inquiry_id': widget.inquiryId.toString(),
-      };
+  Future<void> _submit() async {
+    if (!_formKey.currentState!.validate()) return;
+    if (_selectedDate == null || _selectedTime == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select date and time'), backgroundColor: Colors.red),
+      );
+      return;
+    }
 
-      widget.onAddVisit(visitData);
+    setState(() => isSubmitting = true);
+
+    final visitDate = _selectedDate!.toIso8601String().split('T').first;
+    final visitTime =
+        '${_selectedTime!.hour.toString().padLeft(2, '0')}:${_selectedTime!.minute.toString().padLeft(2, '0')}';
+
+    final result = await VisitInquiryService.addVisit(
+      visitDate: visitDate,
+      visitTime: visitTime,
+      vehicleId: int.parse(_selectedVehicleId!),
+      driverId: int.parse(_selectedDriverId!),
+      inquiryId: widget.inquiryId,
+    );
+
+    if (!mounted) return;
+    setState(() => isSubmitting = false);
+
+    if (result['success']) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(result['message'] ?? "Visit added!"), backgroundColor: Colors.green),
+      );
+      widget.onVisitAdded?.call(); // ← This triggers refresh in parent
       Navigator.pop(context);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(result['message'] ?? "Failed"), backgroundColor: Colors.red),
+      );
     }
   }
 
@@ -96,14 +122,8 @@ class _AddVisitsScreenState extends State<AddVisitsScreen> {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.close, color: Colors.black87),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: const Text(
-          'Record Field Visit',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.black87),
-        ),
+        leading: const BackButton(color: Colors.black87),
+        title: const Text('Record Field Visit', style: TextStyle(fontWeight: FontWeight.w600)),
       ),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -132,24 +152,18 @@ class _AddVisitsScreenState extends State<AddVisitsScreen> {
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(16),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Date Picker
                     _buildDateSection(),
                     const SizedBox(height: 8),
-                    // Time Picker
                     _buildTimeSection(),
                     const SizedBox(height: 8),
-                    // Driver Dropdown (Live)
                     _buildDriverSection(),
                     const SizedBox(height: 8),
-                    // Vehicle Dropdown (Live)
                     _buildVehicleSection(),
                   ],
                 ),
               ),
             ),
-            // Bottom Buttons
             _buildBottomButtons(),
           ],
         ),
@@ -157,180 +171,102 @@ class _AddVisitsScreenState extends State<AddVisitsScreen> {
     );
   }
 
+  // UI Builders (unchanged – kept clean)
   Widget _buildDateSection() => Container(
     color: Colors.white,
     padding: const EdgeInsets.all(16),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text('Visit Date', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.grey)),
-        const SizedBox(height: 8),
-        InkWell(
-          onTap: _selectDate,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-            decoration: BoxDecoration(
-              color: Colors.grey[50],
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: _selectedDate != null ? Colors.grey[400]! : Colors.grey[300]!),
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.calendar_today, size: 18, color: Colors.grey[600]),
-                const SizedBox(width: 12),
-                Text(
-                  _selectedDate == null
-                      ? 'Select date'
-                      : '${_selectedDate!.day.toString().padLeft(2, '0')}/${_selectedDate!.month.toString().padLeft(2, '0')}/${_selectedDate!.year}',
-                  style: TextStyle(fontSize: 14, color: _selectedDate != null ? Colors.black87 : Colors.grey[500]),
-                ),
-              ],
-            ),
-          ),
+    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      const Text('Visit Date', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.grey)),
+      const SizedBox(height: 8),
+      InkWell(
+        onTap: _selectDate,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+          decoration: BoxDecoration(color: Colors.grey[50], borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.grey[300]!)),
+          child: Row(children: [
+            const Icon(Icons.calendar_today, size: 18),
+            const SizedBox(width: 12),
+            Text(_selectedDate == null
+                ? 'Select date'
+                : '${_selectedDate!.day.toString().padLeft(2, '0')}/${_selectedDate!.month.toString().padLeft(2, '0')}/${_selectedDate!.year}'),
+          ]),
         ),
-        if (_selectedDate == null)
-          const Padding(
-            padding: EdgeInsets.only(top: 6, left: 12),
-            child: Text('Please select a date', style: TextStyle(fontSize: 12, color: Colors.red)),
-          ),
-      ],
-    ),
+      ),
+      if (_selectedDate == null) const Padding(padding: EdgeInsets.only(top: 6, left: 12), child: Text('Required', style: TextStyle(color: Colors.red, fontSize: 12))),
+    ]),
   );
 
   Widget _buildTimeSection() => Container(
     color: Colors.white,
     padding: const EdgeInsets.all(16),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text('Visit Time', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.grey)),
-        const SizedBox(height: 8),
-        InkWell(
-          onTap: _selectTime,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-            decoration: BoxDecoration(
-              color: Colors.grey[50],
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: _selectedTime != null ? Colors.grey[400]! : Colors.grey[300]!),
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.access_time, size: 18, color: Colors.grey[600]),
-                const SizedBox(width: 12),
-                Text(
-                  _selectedTime == null ? 'Select time' : _selectedTime!.format(context),
-                  style: TextStyle(fontSize: 14, color: _selectedTime != null ? Colors.black87 : Colors.grey[500]),
-                ),
-              ],
-            ),
-          ),
+    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      const Text('Visit Time', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.grey)),
+      const SizedBox(height: 8),
+      InkWell(
+        onTap: _selectTime,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+          decoration: BoxDecoration(color: Colors.grey[50], borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.grey[300]!)),
+          child: Row(children: [
+            const Icon(Icons.access_time, size: 18),
+            const SizedBox(width: 12),
+            Text(_selectedTime == null ? 'Select time' : _selectedTime!.format(context)),
+          ]),
         ),
-        if (_selectedTime == null)
-          const Padding(
-            padding: EdgeInsets.only(top: 6, left: 12),
-            child: Text('Please select a time', style: TextStyle(fontSize: 12, color: Colors.red)),
-          ),
-      ],
-    ),
+      ),
+      if (_selectedTime == null) const Padding(padding: EdgeInsets.only(top: 6, left: 12), child: Text('Required', style: TextStyle(color: Colors.red, fontSize: 12))),
+    ]),
   );
 
   Widget _buildDriverSection() => Container(
     color: Colors.white,
     padding: const EdgeInsets.all(16),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text('Driver', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.grey)),
-        const SizedBox(height: 8),
-        DropdownButtonFormField<String>(
-          value: _selectedDriverId,
-          hint: Text('Select driver', style: TextStyle(color: Colors.grey[500], fontSize: 14)),
-          validator: (v) => v == null ? 'Please select a driver' : null,
-          decoration: InputDecoration(
-            filled: true,
-            fillColor: Colors.grey[50],
-            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Colors.grey[300]!)),
-            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Colors.grey[300]!)),
-            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Colors.grey[400]!)),
-          ),
-          items: driversMap.entries
-              .map((e) => DropdownMenuItem(value: e.key, child: Text(e.value, style: const TextStyle(fontSize: 14))))
-              .toList(),
-          onChanged: (v) => setState(() => _selectedDriverId = v),
-        ),
-      ],
-    ),
+    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      const Text('Driver', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.grey)),
+      const SizedBox(height: 8),
+      DropdownButtonFormField<String>(
+        value: _selectedDriverId,
+        hint: const Text('Select driver'),
+        validator: (v) => v == null ? 'Please select a driver' : null,
+        decoration: InputDecoration(filled: true, fillColor: Colors.grey[50], contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14), border: OutlineInputBorder(borderRadius: BorderRadius.circular(8))),
+        items: driversMap.entries.map((e) => DropdownMenuItem(value: e.key, child: Text(e.value))).toList(),
+        onChanged: (v) => setState(() => _selectedDriverId = v),
+      ),
+    ]),
   );
 
   Widget _buildVehicleSection() => Container(
     color: Colors.white,
     padding: const EdgeInsets.all(16),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text('Vehicle', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.grey)),
-        const SizedBox(height: 8),
-        DropdownButtonFormField<String>(
-          value: _selectedVehicleId,
-          hint: Text('Select vehicle', style: TextStyle(color: Colors.grey[500], fontSize: 14)),
-          validator: (v) => v == null ? 'Please select a vehicle' : null,
-          decoration: InputDecoration(
-            filled: true,
-            fillColor: Colors.grey[50],
-            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Colors.grey[300]!)),
-            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Colors.grey[300]!)),
-            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Colors.grey[400]!)),
-          ),
-          items: vehiclesMap.entries
-              .map((e) => DropdownMenuItem(value: e.key, child: Text(e.value, style: const TextStyle(fontSize: 14))))
-              .toList(),
-          onChanged: (v) => setState(() => _selectedVehicleId = v),
-        ),
-      ],
-    ),
+    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      const Text('Vehicle', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.grey)),
+      const SizedBox(height: 8),
+      DropdownButtonFormField<String>(
+        value: _selectedVehicleId,
+        hint: const Text('Select vehicle'),
+        validator: (v) => v == null ? 'Please select a vehicle' : null,
+        decoration: InputDecoration(filled: true, fillColor: Colors.grey[50], contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14), border: OutlineInputBorder(borderRadius: BorderRadius.circular(8))),
+        items: vehiclesMap.entries.map((e) => DropdownMenuItem(value: e.key, child: Text(e.value))).toList(),
+        onChanged: (v) => setState(() => _selectedVehicleId = v),
+      ),
+    ]),
   );
 
   Widget _buildBottomButtons() => Container(
     color: Colors.white,
     padding: const EdgeInsets.all(16),
-    child: Row(
-      children: [
-        Expanded(
-          child: OutlinedButton(
-            onPressed: () => Navigator.pop(context),
-            style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              side: BorderSide(color: Colors.grey[400]!),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-            ),
-            child: const Text('Cancel', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
-          ),
+    child: Row(children: [
+      Expanded(child: OutlinedButton(onPressed: isSubmitting ? null : () => Navigator.pop(context), child: const Text('Cancel'))),
+      const SizedBox(width: 12),
+      Expanded(
+        child: ElevatedButton(
+          onPressed: isSubmitting ? null : _submit,
+          style: ElevatedButton.styleFrom(backgroundColor: Colors.black87),
+          child: isSubmitting
+              ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+              : const Text('Save Visit', style: TextStyle(fontWeight: FontWeight.w600)),
         ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: ElevatedButton(
-            onPressed: () {
-              if (_selectedDate == null || _selectedTime == null) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Please select date and time'), backgroundColor: Colors.red),
-                );
-                return;
-              }
-              _submit();
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.black87,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-            ),
-            child: const Text('Save Visit', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
-          ),
-        ),
-      ],
-    ),
+      ),
+    ]),
   );
 }

@@ -22,4 +22,6 @@ class API {
 
   // Inside class API
   static const String getVehicleDriverData = "${ApiConfig.baseApiUrl}/get/vehicle/driver/data";
+  // Inside class API
+  static const String addVisitInquiry = "${ApiConfig.baseApiUrl}/add/visits/inquiries";
 }

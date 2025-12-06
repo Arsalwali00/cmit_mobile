@@ -56,9 +56,10 @@ class _InquiryDetailsScreenState extends State<InquiryDetailsScreen> {
       MaterialPageRoute(
         builder: (_) => AddVisitsScreen(
           inquiryId: i.id,
-          onAddVisit: (visitData) {
+          onVisitAdded: () {
+            // Refresh visits from the original model (or re-fetch if needed)
             setState(() {
-              allVisits = i.visits;
+              allVisits = i.visits; // This updates the list when returning
             });
           },
         ),
