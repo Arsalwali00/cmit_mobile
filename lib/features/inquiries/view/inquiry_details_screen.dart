@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'requested_documents.dart';
 import 'add_visits.dart';
+import 'visit_findings_screen.dart'; // Add this import
 import 'package:cmit/features/home/model/assign_to_me_model.dart';
 
 class InquiryDetailsScreen extends StatefulWidget {
@@ -57,11 +58,22 @@ class _InquiryDetailsScreenState extends State<InquiryDetailsScreen> {
         builder: (_) => AddVisitsScreen(
           inquiryId: i.id,
           onVisitAdded: () {
-            // Refresh visits from the original model (or re-fetch if needed)
             setState(() {
-              allVisits = i.visits; // This updates the list when returning
+              allVisits = i.visits;
             });
           },
+        ),
+      ),
+    );
+  }
+
+  void _navigateToFindings(Map<String, dynamic> visit) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => VisitFindingsScreen(
+          visit: visit,
+          inquiryId: i.id.toString(),
         ),
       ),
     );
@@ -435,6 +447,27 @@ class _InquiryDetailsScreenState extends State<InquiryDetailsScreen> {
               ),
             ),
           ],
+          // Add Findings/Proceedings/Recommendations Button
+          Divider(height: 1, color: Colors.grey[300]),
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () => _navigateToFindings(visit),
+                icon: const Icon(Icons.assignment, size: 18),
+                label: const Text('Findings/Proceedings/Recommendations'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue[700],
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );
