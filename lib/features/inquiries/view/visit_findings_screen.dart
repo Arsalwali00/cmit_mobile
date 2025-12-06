@@ -1,6 +1,7 @@
 // lib/features/inquiries/view/visit_findings_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_quill/flutter_quill.dart' as quill;
+import 'package:cmit/core/finding_inquiry_service.dart'; // Adjust path if needed
 
 class VisitFindingsScreen extends StatefulWidget {
   final Map<String, dynamic> visit;
@@ -19,6 +20,7 @@ class VisitFindingsScreen extends StatefulWidget {
 class _VisitFindingsScreenState extends State<VisitFindingsScreen> {
   late quill.QuillController _controller;
   final FocusNode _focusNode = FocusNode();
+  bool _isSubmitting = false;
 
   @override
   void initState() {
@@ -27,23 +29,18 @@ class _VisitFindingsScreenState extends State<VisitFindingsScreen> {
   }
 
   void _loadExistingData() {
-    // Load existing data if available from the visit object
-    final existingContent = widget.visit['findings_proceedings_recommendations'] ?? '';
+    final existingContent =
+        widget.visit['findings_proceedings_recommendations']?.toString() ?? '';
 
-    if (existingContent.toString().isNotEmpty) {
-      final doc = quill.Document()..insert(0, existingContent.toString());
-      _controller = quill.QuillController(
-        document: doc,
-        selection: const TextSelection.collapsed(offset: 0),
-      );
-    } else {
-      // Create a basic document
-      final doc = quill.Document();
-      _controller = quill.QuillController(
-        document: doc,
-        selection: const TextSelection.collapsed(offset: 0),
-      );
+    final doc = quill.Document();
+    if (existingContent.isNotEmpty) {
+      doc.insert(0, existingContent);
     }
+
+    _controller = quill.QuillController(
+      document: doc,
+      selection: const TextSelection.collapsed(offset: 0),
+    );
   }
 
   @override
@@ -53,35 +50,59 @@ class _VisitFindingsScreenState extends State<VisitFindingsScreen> {
     super.dispose();
   }
 
-  Future<void> _save() async {
+  Future<void> _submitFindings() async {
     final content = _controller.document.toPlainText().trim();
 
-    if (content.isEmpty) {
+    if (content.isEmpty || content == '\n') {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Please enter some content before saving'),
+          content: Text('Please enter findings before submitting'),
           backgroundColor: Colors.orange,
         ),
       );
       return;
     }
 
-    // TODO: Implement API call to save data
-    // Example:
-    // await ApiService.saveVisitFindings(
-    //   inquiryId: widget.inquiryId,
-    //   visitId: widget.visit['id'],
-    //   content: content,
-    // );
+    if (_isSubmitting) return;
 
-    if (mounted) {
+    setState(() => _isSubmitting = true);
+
+    final visitId = widget.visit['id'];
+    if (visitId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Saved successfully!'),
+          content: Text('Visit ID not found!'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      setState(() => _isSubmitting = false);
+      return;
+    }
+
+    final result = await FindingInquiryService.storeFinding(
+      findings: content,
+      visitId: int.parse(visitId.toString()),
+    );
+
+    if (!mounted) return;
+
+    setState(() => _isSubmitting = false);
+
+    if (result['success'] == true) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(result['message'] ?? 'Findings submitted successfully!'),
           backgroundColor: Colors.green,
         ),
       );
-      Navigator.pop(context);
+      Navigator.pop(context, true); // Return true to indicate success
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(result['message'] ?? 'Failed to submit findings'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
@@ -110,7 +131,7 @@ class _VisitFindingsScreenState extends State<VisitFindingsScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Finding / Preceding / Recommendations',
+              'Finding / Proceedings / Recommendations',
               style: TextStyle(
                 fontWeight: FontWeight.w600,
                 color: Colors.black87,
@@ -128,10 +149,19 @@ class _VisitFindingsScreenState extends State<VisitFindingsScreen> {
           ],
         ),
         actions: [
-          TextButton.icon(
-            onPressed: _save,
-            icon: const Icon(Icons.save, size: 18),
-            label: const Text('Save'),
+          _isSubmitting
+              ? const Padding(
+            padding: EdgeInsets.all(16.0),
+            child: SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+          )
+              : TextButton.icon(
+            onPressed: _isSubmitting ? null : _submitFindings,
+            icon: const Icon(Icons.send, size: 18),
+            label: const Text('Submit'),
             style: TextButton.styleFrom(
               foregroundColor: Colors.blue[700],
               padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -152,59 +182,45 @@ class _VisitFindingsScreenState extends State<VisitFindingsScreen> {
                   // Toolbar
                   Container(
                     decoration: BoxDecoration(
-                      color: Colors.grey[50],
-                      border: Border(
-                        bottom: BorderSide(color: Colors.grey[300]!),
-                      ),
+                      color: Colors.white,
+                      border: Border(bottom: BorderSide(color: Colors.grey[300]!)),
                     ),
-                    child: quill.QuillToolbar.simple(
-                      configurations: quill.QuillSimpleToolbarConfigurations(
-                        controller: _controller,
-                        sharedConfigurations: const quill.QuillSharedConfigurations(),
-                        showAlignmentButtons: false,
-                        showBackgroundColorButton: false,
-                        showCenterAlignment: false,
-                        showCodeBlock: false,
-                        showColorButton: false,
-                        showDirection: false,
-                        showDividers: true,
-                        showFontFamily: false,
-                        showFontSize: false,
-                        showHeaderStyle: false,
-                        showIndent: true,
-                        showInlineCode: false,
-                        showJustifyAlignment: false,
-                        showLeftAlignment: false,
-                        showListCheck: false,
-                        showQuote: false,
-                        showRightAlignment: false,
-                        showSearchButton: false,
-                        showSmallButton: false,
-                        showStrikeThrough: true,
-                        showSubscript: false,
-                        showSuperscript: false,
-                        multiRowsDisplay: false,
+                    child: Theme(
+                      data: Theme.of(context).copyWith(
+                        iconTheme: IconThemeData(color: Colors.grey[700]),
+                      ),
+                      child: quill.QuillToolbar.simple(
+                        configurations: quill.QuillSimpleToolbarConfigurations(
+                          controller: _controller,
+                          showAlignmentButtons: false,
+                          showBackgroundColorButton: false,
+                          showCodeBlock: false,
+                          showColorButton: false,
+                          showFontFamily: false,
+                          showFontSize: false,
+                          showHeaderStyle: true,
+                          showIndent: true,
+                          showListBullets: true,
+                          showListNumbers: true,
+                          showQuote: true,
+                          showBoldButton: true,
+                          showItalicButton: true,
+                          showUnderLineButton: true,
+                          showStrikeThrough: true,
+                          multiRowsDisplay: false,
+                        ),
                       ),
                     ),
                   ),
                   // Editor
                   Expanded(
-                    child: SingleChildScrollView(
-                      child: Container(
-                        constraints: BoxConstraints(
-                          minHeight: MediaQuery.of(context).size.height - 400,
-                        ),
+                    child: quill.QuillEditor.basic(
+                      configurations: quill.QuillEditorConfigurations(
+                        controller: _controller,
+                        autoFocus: true,
+                        expands: false,
                         padding: const EdgeInsets.all(16),
-                        child: quill.QuillEditor.basic(
-                          configurations: quill.QuillEditorConfigurations(
-                            controller: _controller,
-                            autoFocus: false,
-                            expands: false,
-                            padding: EdgeInsets.zero,
-                            sharedConfigurations: const quill.QuillSharedConfigurations(),
-                            placeholder: 'Enter findings, proceedings, and recommendations here...',
-                          ),
-                        ),
+                        placeholder: 'Enter findings, proceedings, and recommendations here...',
                       ),
                     ),
                   ),
@@ -240,20 +256,8 @@ class _VisitFindingsScreenState extends State<VisitFindingsScreen> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    date,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 15,
-                    ),
-                  ),
-                  Text(
-                    time,
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: Colors.grey[600],
-                    ),
-                  ),
+                  Text(date, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
+                  Text(time, style: TextStyle(fontSize: 13, color: Colors.grey[600])),
                 ],
               ),
             ],
@@ -286,23 +290,10 @@ class _VisitFindingsScreenState extends State<VisitFindingsScreen> {
       children: [
         SizedBox(
           width: 70,
-          child: Text(
-            '$label:',
-            style: TextStyle(
-              fontSize: 13,
-              color: Colors.grey[600],
-              fontWeight: FontWeight.w500,
-            ),
-          ),
+          child: Text('$label:', style: TextStyle(fontSize: 13, color: Colors.grey[600], fontWeight: FontWeight.w500)),
         ),
         Expanded(
-          child: Text(
-            value,
-            style: const TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
+          child: Text(value, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
         ),
       ],
     );
