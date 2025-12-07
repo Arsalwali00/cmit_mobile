@@ -1,5 +1,7 @@
 // lib/features/inquiries/view/finalized_finding_screen.dart
 import 'package:flutter/material.dart';
+import 'package:flutter_quill/flutter_quill.dart' as quill;
+import 'dart:convert';
 
 class FinalizedFindingScreen extends StatefulWidget {
   final Map<String, dynamic> visit;
@@ -17,35 +19,68 @@ class FinalizedFindingScreen extends StatefulWidget {
 
 class _FinalizedFindingScreenState extends State<FinalizedFindingScreen> {
   final _formKey = GlobalKey<FormState>();
-  final TextEditingController _conclusionController = TextEditingController();
-  final TextEditingController _recommendationsController = TextEditingController();
-  final TextEditingController _actionTakenController = TextEditingController();
+  late quill.QuillController _quillController;
   bool _isLoading = false;
 
   @override
+  void initState() {
+    super.initState();
+    _initializeQuillController();
+  }
+
+  void _initializeQuillController() {
+    final findingsList = (widget.visit['findings'] as List<dynamic>? ?? [])
+        .cast<Map<String, dynamic>>();
+
+    // Build combined findings text
+    String combinedFindings = '';
+    for (int i = 0; i < findingsList.length; i++) {
+      final finding = findingsList[i];
+      final user = (finding['user'] ?? 'Unknown').toString();
+      final findingsText = (finding['findings'] ?? '').toString();
+
+      if (i > 0) combinedFindings += '\n\n';
+      combinedFindings += 'Finding #${i + 1} - $user\n$findingsText';
+    }
+
+    // Initialize QuillController with combined findings
+    try {
+      // Try to parse as JSON first (in case it's already Quill delta format)
+      final delta = quill.Document.fromJson(jsonDecode(combinedFindings));
+      _quillController = quill.QuillController(
+        document: delta,
+        selection: const TextSelection.collapsed(offset: 0),
+      );
+    } catch (e) {
+      // If not JSON, treat as plain text
+      _quillController = quill.QuillController.basic();
+      if (combinedFindings.isNotEmpty) {
+        _quillController.document.insert(0, combinedFindings);
+      }
+    }
+  }
+
+  @override
   void dispose() {
-    _conclusionController.dispose();
-    _recommendationsController.dispose();
-    _actionTakenController.dispose();
+    _quillController.dispose();
     super.dispose();
   }
 
   Future<void> _submitFinalization() async {
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
-
     setState(() => _isLoading = true);
 
     try {
+      // Get the content from Quill editor
+      final deltaJson = jsonEncode(_quillController.document.toDelta().toJson());
+      final plainText = _quillController.document.toPlainText();
+
       // TODO: Implement API call to finalize the finding
       // Example:
       // final response = await apiService.finalizeFinding(
       //   inquiryId: widget.inquiryId,
       //   visitId: widget.visit['id'],
-      //   conclusion: _conclusionController.text,
-      //   recommendations: _recommendationsController.text,
-      //   actionTaken: _actionTakenController.text,
+      //   findingsContent: deltaJson, // Store as JSON for rich text
+      //   findingsPlainText: plainText, // Store plain text for searching
       // );
 
       await Future.delayed(const Duration(seconds: 1)); // Simulating API call
@@ -77,9 +112,6 @@ class _FinalizedFindingScreenState extends State<FinalizedFindingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final findingsList = (widget.visit['findings'] as List<dynamic>? ?? [])
-        .cast<Map<String, dynamic>>();
-
     return Scaffold(
       backgroundColor: Colors.grey[100],
       appBar: AppBar(
@@ -91,17 +123,14 @@ class _FinalizedFindingScreenState extends State<FinalizedFindingScreen> {
           style: TextStyle(fontWeight: FontWeight.w600, color: Colors.black87),
         ),
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            _buildVisitInfo(),
-            const SizedBox(height: 8),
-            _buildFindingsSummary(findingsList),
-            const SizedBox(height: 8),
-            _buildFinalizationForm(),
-            const SizedBox(height: 16),
-          ],
-        ),
+      body: Column(
+        children: [
+          _buildVisitInfo(),
+          const SizedBox(height: 8),
+          Expanded(
+            child: _buildQuillEditor(),
+          ),
+        ],
       ),
       bottomNavigationBar: _buildBottomBar(),
     );
@@ -149,172 +178,70 @@ class _FinalizedFindingScreenState extends State<FinalizedFindingScreen> {
     );
   }
 
-  Widget _buildFindingsSummary(List<Map<String, dynamic>> findingsList) {
+  Widget _buildQuillEditor() {
     return Container(
-      width: double.infinity,
       color: Colors.white,
-      padding: const EdgeInsets.all(16),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Icon(Icons.assignment, size: 20, color: Colors.grey[700]),
-              const SizedBox(width: 8),
-              Text(
-                'Findings Summary (${findingsList.length})',
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black87,
+          // Toolbar
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.grey[50],
+              border: Border(
+                bottom: BorderSide(color: Colors.grey[300]!),
+              ),
+            ),
+            child: quill.QuillToolbar.simple(
+              configurations: quill.QuillSimpleToolbarConfigurations(
+                controller: _quillController,
+                sharedConfigurations: const quill.QuillSharedConfigurations(),
+                showAlignmentButtons: true,
+                showBoldButton: true,
+                showItalicButton: true,
+                showUnderLineButton: true,
+                showStrikeThrough: false,
+                showColorButton: false,
+                showBackgroundColorButton: false,
+                showListBullets: true,
+                showListNumbers: true,
+                showListCheck: false,
+                showCodeBlock: false,
+                showQuote: false,
+                showIndent: true,
+                showLink: false,
+                showUndo: true,
+                showRedo: true,
+                showDirection: false,
+                showSearchButton: false,
+                showSubscript: false,
+                showSuperscript: false,
+                showInlineCode: false,
+                showFontFamily: false,
+                showFontSize: false,
+                showClearFormat: true,
+                showHeaderStyle: true,
+              ),
+            ),
+          ),
+          // Editor
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              child: quill.QuillEditor.basic(
+                configurations: quill.QuillEditorConfigurations(
+                  controller: _quillController,
+                  sharedConfigurations: const quill.QuillSharedConfigurations(
+                    locale: Locale('en'),
+                  ),
+                  placeholder: 'Edit findings here...',
+                  padding: EdgeInsets.zero,
+
                 ),
               ),
-            ],
+            ),
           ),
-          const SizedBox(height: 12),
-          if (findingsList.isEmpty)
-            Text(
-              'No findings recorded',
-              style: TextStyle(
-                color: Colors.grey[500],
-                fontStyle: FontStyle.italic,
-              ),
-            )
-          else
-            ...findingsList.asMap().entries.map((entry) {
-              final int index = entry.key + 1;
-              final Map<String, dynamic> finding = entry.value;
-              return _findingItem(
-                user: (finding['user'] ?? 'Unknown').toString(),
-                findingsText: (finding['findings'] ?? '').toString(),
-                number: index,
-              );
-            }).toList(),
         ],
       ),
-    );
-  }
-
-  Widget _buildFinalizationForm() {
-    return Container(
-      width: double.infinity,
-      color: Colors.white,
-      padding: const EdgeInsets.all(16),
-      child: Form(
-        key: _formKey,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.edit_document, size: 20, color: Colors.grey[700]),
-                const SizedBox(width: 8),
-                const Text(
-                  'Finalization Details',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black87,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            _buildTextField(
-              controller: _conclusionController,
-              label: 'Conclusion',
-              hint: 'Enter the conclusion based on findings',
-              maxLines: 4,
-              validator: (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return 'Please enter a conclusion';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 16),
-            _buildTextField(
-              controller: _recommendationsController,
-              label: 'Recommendations',
-              hint: 'Enter recommendations',
-              maxLines: 4,
-              validator: (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return 'Please enter recommendations';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 16),
-            _buildTextField(
-              controller: _actionTakenController,
-              label: 'Action Taken / Next Steps',
-              hint: 'Enter action taken or next steps',
-              maxLines: 4,
-              validator: (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return 'Please enter action taken or next steps';
-                }
-                return null;
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTextField({
-    required TextEditingController controller,
-    required String label,
-    required String hint,
-    int maxLines = 1,
-    String? Function(String?)? validator,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: Colors.black87,
-          ),
-        ),
-        const SizedBox(height: 8),
-        TextFormField(
-          controller: controller,
-          maxLines: maxLines,
-          validator: validator,
-          decoration: InputDecoration(
-            hintText: hint,
-            hintStyle: TextStyle(color: Colors.grey[400], fontSize: 13),
-            filled: true,
-            fillColor: Colors.grey[50],
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(color: Colors.grey[300]!),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(color: Colors.grey[300]!),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(color: Colors.green[700]!, width: 2),
-            ),
-            errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: Colors.red),
-            ),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 12,
-              vertical: 12,
-            ),
-          ),
-        ),
-      ],
     );
   }
 
@@ -388,63 +315,6 @@ class _FinalizedFindingScreenState extends State<FinalizedFindingScreen> {
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _findingItem({
-    required String user,
-    required String findingsText,
-    required int number,
-  }) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.grey[50],
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey[300]!),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: Colors.blue[700],
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Text(
-                  '#$number',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 12,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  user,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          if (findingsText.isNotEmpty) ...[
-            const SizedBox(height: 10),
-            Text(
-              findingsText,
-              style: const TextStyle(fontSize: 13, height: 1.5),
-            ),
-          ],
-        ],
       ),
     );
   }
