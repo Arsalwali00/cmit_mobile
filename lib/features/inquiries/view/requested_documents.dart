@@ -1,8 +1,7 @@
-// lib/features/inquiries/view/requested_documents.dart
 import 'package:flutter/material.dart';
 
 class RequestedDocumentsScreen extends StatefulWidget {
-  final int inquiryId; // For future API submission
+  final int inquiryId;
   final Function(Map<String, String>) onAddDocument;
 
   const RequestedDocumentsScreen({
@@ -18,9 +17,7 @@ class RequestedDocumentsScreen extends StatefulWidget {
 class _RequestedDocumentsScreenState extends State<RequestedDocumentsScreen> {
   final _formKey = GlobalKey<FormState>();
   String? _selectedDocumentType;
-  final _notesController = TextEditingController();
 
-  // Real-world document types (customize as needed)
   final List<String> documentTypes = [
     'Invoice',
     'Receipt',
@@ -42,17 +39,10 @@ class _RequestedDocumentsScreenState extends State<RequestedDocumentsScreen> {
     'Other',
   ];
 
-  @override
-  void dispose() {
-    _notesController.dispose();
-    super.dispose();
-  }
-
   void _submit() {
     if (_formKey.currentState!.validate()) {
       final docData = {
         'document_type': _selectedDocumentType!,
-        'notes': _notesController.text.trim().isEmpty ? 'No additional notes' : _notesController.text.trim(),
         'inquiry_id': widget.inquiryId.toString(),
         'requested_at': DateTime.now().toIso8601String(),
       };
@@ -65,26 +55,47 @@ class _RequestedDocumentsScreenState extends State<RequestedDocumentsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.close, color: Colors.black87),
+          icon: const Icon(Icons.close, color: Color(0xFF1A1A1A)),
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
           'Request Document',
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: Colors.black87),
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF1A1A1A),
+          ),
+        ),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1),
+          child: Container(
+            color: const Color(0xFFE5E5E5),
+            height: 1,
+          ),
         ),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Form(
           key: _formKey,
-          child: Card(
-            elevation: 3,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFE0E0E0)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.04),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
             child: Padding(
               padding: const EdgeInsets.all(20),
               child: Column(
@@ -93,25 +104,49 @@ class _RequestedDocumentsScreenState extends State<RequestedDocumentsScreen> {
                   // Header
                   Row(
                     children: [
-                      Icon(Icons.description_outlined, color: Colors.orange.shade700, size: 28),
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE8F5E9),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(
+                          Icons.description_outlined,
+                          color: Color(0xFF014323),
+                          size: 24,
+                        ),
+                      ),
                       const SizedBox(width: 12),
-                      const Text(
-                        'Request Supporting Document',
-                        style: TextStyle(fontSize: 19, fontWeight: FontWeight.bold),
+                      const Expanded(
+                        child: Text(
+                          'Request Supporting Document',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF1A1A1A),
+                          ),
+                        ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 8),
-                  Text(
+                  const Text(
                     'Specify the document required to proceed with the inquiry.',
-                    style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                    style: TextStyle(
+                      color: Color(0xFF757575),
+                      fontSize: 14,
+                    ),
                   ),
                   const SizedBox(height: 28),
 
                   // Document Type Dropdown
                   const Text(
                     'Document Type',
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF1A1A1A),
+                    ),
                   ),
                   const SizedBox(height: 8),
                   DropdownButtonFormField<String>(
@@ -120,17 +155,30 @@ class _RequestedDocumentsScreenState extends State<RequestedDocumentsScreen> {
                     validator: (value) => value == null ? 'Please select a document type' : null,
                     decoration: InputDecoration(
                       filled: true,
-                      fillColor: Colors.grey[50],
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      fillColor: const Color(0xFFF5F5F5),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+                      ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: Colors.grey.shade300),
+                        borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: Colors.orange.shade600, width: 2),
+                        borderSide: const BorderSide(
+                          color: Color(0xFF014323),
+                          width: 2,
+                        ),
                       ),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                      errorBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: Colors.red),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 16,
+                      ),
                     ),
                     items: documentTypes
                         .map((type) => DropdownMenuItem(
@@ -139,35 +187,6 @@ class _RequestedDocumentsScreenState extends State<RequestedDocumentsScreen> {
                     ))
                         .toList(),
                     onChanged: (value) => setState(() => _selectedDocumentType = value),
-                  ),
-                  const SizedBox(height: 20),
-
-                  // Additional Notes (Optional)
-                  const Text(
-                    'Additional Instructions (Optional)',
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
-                  ),
-                  const SizedBox(height: 8),
-                  TextFormField(
-                    controller: _notesController,
-                    maxLines: 4,
-                    textCapitalization: TextCapitalization.sentences,
-                    decoration: InputDecoration(
-                      hintText: 'e.g. Provide certified copies from the last 3 years...',
-                      hintStyle: TextStyle(color: Colors.grey[400]),
-                      filled: true,
-                      fillColor: Colors.grey[50],
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: Colors.grey.shade300),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: Colors.orange.shade600, width: 2),
-                      ),
-                      contentPadding: const EdgeInsets.all(16),
-                    ),
                   ),
                   const SizedBox(height: 32),
 
@@ -178,28 +197,39 @@ class _RequestedDocumentsScreenState extends State<RequestedDocumentsScreen> {
                         child: OutlinedButton(
                           onPressed: () => Navigator.pop(context),
                           style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            side: BorderSide(color: Colors.grey.shade400),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            side: const BorderSide(color: Color(0xFFE0E0E0)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
                           ),
                           child: const Text(
                             'Cancel',
-                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF757575),
+                            ),
                           ),
                         ),
                       ),
-                      const SizedBox(width: 16),
+                      const SizedBox(width: 12),
                       Expanded(
                         child: ElevatedButton.icon(
                           onPressed: _submit,
-                          icon: const Icon(Icons.send, size: 20),
-                          label: const Text('Request Document'),
+                          icon: const Icon(Icons.send, size: 18),
+                          label: const Text(
+                            'Request',
+                            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                          ),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.orange.shade700,
+                            backgroundColor: const Color(0xFF014323),
                             foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            elevation: 2,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
                           ),
                         ),
                       ),

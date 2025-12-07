@@ -78,7 +78,6 @@ class _InquiryDetailsScreenState extends State<InquiryDetailsScreen> {
         ),
       ),
     ).then((_) {
-      // Refresh the visit data when returning from findings screen
       setState(() {
         allVisits = i.visits;
       });
@@ -95,7 +94,6 @@ class _InquiryDetailsScreenState extends State<InquiryDetailsScreen> {
           findingIndex: index,
           inquiryId: i.id.toString(),
           onSave: () {
-            // Refresh the visit data when returning
             setState(() {
               allVisits = i.visits;
             });
@@ -115,7 +113,6 @@ class _InquiryDetailsScreenState extends State<InquiryDetailsScreen> {
         ),
       ),
     ).then((result) {
-      // Refresh the visit data when returning
       if (result == true) {
         setState(() {
           allVisits = i.visits;
@@ -129,14 +126,24 @@ class _InquiryDetailsScreenState extends State<InquiryDetailsScreen> {
     final isChairperson = i.isChairperson;
 
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        leading: const BackButton(color: Colors.black87),
+        leading: const BackButton(color: Color(0xFF1A1A1A)),
         title: const Text(
           'Inquiry Details',
-          style: TextStyle(fontWeight: FontWeight.w600, color: Colors.black87),
+          style: TextStyle(
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF1A1A1A),
+          ),
+        ),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1),
+          child: Container(
+            color: const Color(0xFFE5E5E5),
+            height: 1,
+          ),
         ),
         actions: [
           if (isChairperson)
@@ -144,19 +151,19 @@ class _InquiryDetailsScreenState extends State<InquiryDetailsScreen> {
               margin: const EdgeInsets.only(right: 16),
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: Colors.deepPurple.shade50,
+                color: const Color(0xFFE8F5E9),
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.deepPurple.shade200),
+                border: Border.all(color: const Color(0xFF014323).withOpacity(0.3)),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.star, size: 14, color: Colors.deepPurple.shade700),
+                  const Icon(Icons.star, size: 14, color: Color(0xFF014323)),
                   const SizedBox(width: 4),
-                  Text(
+                  const Text(
                     'Chairperson',
                     style: TextStyle(
-                      color: Colors.deepPurple.shade700,
+                      color: Color(0xFF014323),
                       fontWeight: FontWeight.w600,
                       fontSize: 12,
                     ),
@@ -216,7 +223,7 @@ class _InquiryDetailsScreenState extends State<InquiryDetailsScreen> {
             style: const TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
-              color: Colors.black87,
+              color: Color(0xFF1A1A1A),
             ),
           ),
           const SizedBox(height: 12),
@@ -226,7 +233,7 @@ class _InquiryDetailsScreenState extends State<InquiryDetailsScreen> {
             children: [
               _badge(i.statusText, i.statusColor),
               _badge(i.priorityText, i.priorityColor),
-              _badge(i.inquiryType, Colors.purple.shade700),
+              _badge(i.inquiryType, const Color(0xFF014323)),
             ],
           ),
           if (i.timeFrame.isNotEmpty) ...[
@@ -275,14 +282,14 @@ class _InquiryDetailsScreenState extends State<InquiryDetailsScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               child: Row(
                 children: [
-                  Icon(icon, size: 20, color: Colors.grey[700]),
+                  Icon(icon, size: 20, color: const Color(0xFF014323)),
                   const SizedBox(width: 12),
                   Text(
                     title,
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
-                      color: Colors.black87,
+                      color: Color(0xFF1A1A1A),
                     ),
                   ),
                   if (count != null && count > 0) ...[
@@ -290,15 +297,15 @@ class _InquiryDetailsScreenState extends State<InquiryDetailsScreen> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                       decoration: BoxDecoration(
-                        color: Colors.grey[200],
+                        color: const Color(0xFFE8F5E9),
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Text(
                         '$count',
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
-                          color: Colors.grey[700],
+                          color: Color(0xFF014323),
                         ),
                       ),
                     ),
@@ -306,7 +313,7 @@ class _InquiryDetailsScreenState extends State<InquiryDetailsScreen> {
                   const Spacer(),
                   if (onAdd != null)
                     IconButton(
-                      icon: Icon(Icons.add, size: 20, color: Colors.grey[700]),
+                      icon: const Icon(Icons.add, size: 20, color: Color(0xFF014323)),
                       onPressed: onAdd,
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
@@ -401,9 +408,16 @@ class _InquiryDetailsScreenState extends State<InquiryDetailsScreen> {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: Colors.grey[50],
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey[300]!),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE0E0E0)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -464,7 +478,7 @@ class _InquiryDetailsScreenState extends State<InquiryDetailsScreen> {
                         icon: const Icon(Icons.check_circle, size: 16),
                         label: const Text('Finalize'),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green[700],
+                          backgroundColor: const Color(0xFF014323),
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                           minimumSize: Size.zero,
@@ -501,7 +515,7 @@ class _InquiryDetailsScreenState extends State<InquiryDetailsScreen> {
                 icon: const Icon(Icons.assignment, size: 18),
                 label: const Text('Findings/Proceedings/Recommendations'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue[700],
+                  backgroundColor: const Color(0xFF014323),
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 12),
                   shape: RoundedRectangleBorder(
@@ -549,9 +563,9 @@ class _InquiryDetailsScreenState extends State<InquiryDetailsScreen> {
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: const Color(0xFFF8F9FA),
         borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: Colors.grey[300]!),
+        border: Border.all(color: const Color(0xFFE0E0E0)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -561,7 +575,7 @@ class _InquiryDetailsScreenState extends State<InquiryDetailsScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
-                  color: Colors.blue[700],
+                  color: const Color(0xFF014323),
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(
@@ -584,7 +598,7 @@ class _InquiryDetailsScreenState extends State<InquiryDetailsScreen> {
                 ),
               ),
               IconButton(
-                icon: Icon(Icons.edit, size: 16, color: Colors.blue[700]),
+                icon: const Icon(Icons.edit, size: 16, color: Color(0xFF014323)),
                 onPressed: onEdit,
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(),
@@ -649,7 +663,7 @@ class _InquiryDetailsScreenState extends State<InquiryDetailsScreen> {
           style: const TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w600,
-            color: Colors.black87,
+            color: Color(0xFF1A1A1A),
           ),
         ),
         const SizedBox(height: 6),
@@ -665,29 +679,12 @@ class _InquiryDetailsScreenState extends State<InquiryDetailsScreen> {
     );
   }
 
-  Widget _chip(String text) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: Colors.grey[200],
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Text(
-        text,
-        style: const TextStyle(
-          fontSize: 13,
-          fontWeight: FontWeight.w500,
-        ),
-      ),
-    );
-  }
-
   Widget _badge(String text, Color color) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12),
+        color: color.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(6),
         border: Border.all(color: color.withOpacity(0.3)),
       ),
       child: Text(
@@ -695,7 +692,7 @@ class _InquiryDetailsScreenState extends State<InquiryDetailsScreen> {
         style: TextStyle(
           color: color,
           fontWeight: FontWeight.w600,
-          fontSize: 12,
+          fontSize: 11,
         ),
       ),
     );

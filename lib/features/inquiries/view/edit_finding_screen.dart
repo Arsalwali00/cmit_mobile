@@ -37,13 +37,11 @@ class _EditFindingScreenState extends State<EditFindingScreen> {
   void _initializeController() {
     final String findingText = widget.finding['findings']?.toString() ?? '';
 
-    // Try to parse as Delta JSON first, otherwise treat as plain text
     Document document;
     try {
       final deltaJson = jsonDecode(findingText);
       document = Document.fromJson(deltaJson);
     } catch (e) {
-      // If not JSON, treat as plain text
       document = Document()..insert(0, findingText);
     }
 
@@ -76,22 +74,11 @@ class _EditFindingScreenState extends State<EditFindingScreen> {
     setState(() => _isSaving = true);
 
     try {
-      // Get the Delta JSON for storage
       final deltaJson = jsonEncode(_controller.document.toDelta().toJson());
 
       // TODO: Implement actual API call to update finding
-      // Example:
-      // await apiService.updateFinding(
-      //   inquiryId: widget.inquiryId,
-      //   visitId: widget.visit['id'].toString(),
-      //   findingId: widget.finding['id'].toString(),
-      //   findings: deltaJson, // Store as Delta JSON
-      // );
-
-      // Simulate API call
       await Future.delayed(const Duration(seconds: 1));
 
-      // Update the finding locally
       widget.finding['findings'] = deltaJson;
 
       if (mounted) {
@@ -100,7 +87,7 @@ class _EditFindingScreenState extends State<EditFindingScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Finding updated successfully'),
-            backgroundColor: Colors.green,
+            backgroundColor: Color(0xFF014323),
           ),
         );
       }
@@ -126,14 +113,24 @@ class _EditFindingScreenState extends State<EditFindingScreen> {
     final String visitDate = widget.visit['visit_date']?.toString() ?? '';
 
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        leading: const BackButton(color: Colors.black87),
+        leading: const BackButton(color: Color(0xFF1A1A1A)),
         title: const Text(
           'Edit Finding',
-          style: TextStyle(fontWeight: FontWeight.w600, color: Colors.black87),
+          style: TextStyle(
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF1A1A1A),
+          ),
+        ),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1),
+          child: Container(
+            color: const Color(0xFFE5E5E5),
+            height: 1,
+          ),
         ),
       ),
       body: Column(
@@ -168,7 +165,7 @@ class _EditFindingScreenState extends State<EditFindingScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
-                  color: Colors.blue[700],
+                  color: const Color(0xFF014323),
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(
@@ -190,7 +187,7 @@ class _EditFindingScreenState extends State<EditFindingScreen> {
                       style: const TextStyle(
                         fontWeight: FontWeight.w600,
                         fontSize: 16,
-                        color: Colors.black87,
+                        color: Color(0xFF1A1A1A),
                       ),
                     ),
                     if (visitDate.isNotEmpty) ...[
@@ -230,14 +227,14 @@ class _EditFindingScreenState extends State<EditFindingScreen> {
             padding: const EdgeInsets.all(16),
             child: Row(
               children: [
-                Icon(Icons.description, size: 20, color: Colors.grey[700]),
+                const Icon(Icons.description, size: 20, color: Color(0xFF014323)),
                 const SizedBox(width: 8),
                 const Text(
                   'Finding Details',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
-                    color: Colors.black87,
+                    color: Color(0xFF1A1A1A),
                   ),
                 ),
               ],
@@ -245,7 +242,7 @@ class _EditFindingScreenState extends State<EditFindingScreen> {
           ),
           // Quill Toolbar
           Container(
-            color: Colors.grey[50],
+            color: const Color(0xFFF8F9FA),
             child: QuillToolbar.simple(
               configurations: QuillSimpleToolbarConfigurations(
                 controller: _controller,
@@ -324,16 +321,17 @@ class _EditFindingScreenState extends State<EditFindingScreen> {
                 onPressed: _isSaving ? null : () => Navigator.pop(context),
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 14),
-                  side: BorderSide(color: Colors.grey[400]!),
+                  side: const BorderSide(color: Color(0xFFE0E0E0)),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(10),
                   ),
                 ),
                 child: const Text(
                   'Cancel',
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: 15,
                     fontWeight: FontWeight.w600,
+                    color: Color(0xFF757575),
                   ),
                 ),
               ),
@@ -344,11 +342,12 @@ class _EditFindingScreenState extends State<EditFindingScreen> {
               child: ElevatedButton(
                 onPressed: _isSaving ? null : _saveFinding,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue[700],
+                  backgroundColor: const Color(0xFF014323),
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 14),
+                  elevation: 0,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(10),
                   ),
                 ),
                 child: _isSaving
@@ -363,7 +362,7 @@ class _EditFindingScreenState extends State<EditFindingScreen> {
                     : const Text(
                   'Save Changes',
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: 15,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
