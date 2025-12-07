@@ -24,9 +24,10 @@ class _InquiryDetailsScreenState extends State<InquiryDetailsScreen> {
   late List<dynamic> allVisits = [];
 
   // Track expansion state
-  bool _detailsExpanded = true;
-  bool _visitsExpanded = true;
-  bool _documentsExpanded = true;
+  bool _detailsExpanded = false;
+  bool _visitsExpanded = false;
+  bool _documentsExpanded = false;
+  Map<int, bool> _visitExpansionState = {};
 
   AssignToMeModel get i => widget.inquiry;
 
@@ -35,6 +36,10 @@ class _InquiryDetailsScreenState extends State<InquiryDetailsScreen> {
     super.initState();
     allVisits = i.visits;
     documents = i.requiredDocuments;
+    // Initialize all visits as collapsed
+    for (int i = 0; i < allVisits.length; i++) {
+      _visitExpansionState[i] = false;
+    }
   }
 
   void _addDocument() {
@@ -61,6 +66,10 @@ class _InquiryDetailsScreenState extends State<InquiryDetailsScreen> {
           onVisitAdded: () {
             setState(() {
               allVisits = i.visits;
+              // Re-initialize expansion state for new visits
+              for (int i = 0; i < allVisits.length; i++) {
+                _visitExpansionState[i] ??= false;
+              }
             });
           },
         ),
@@ -362,9 +371,11 @@ class _InquiryDetailsScreenState extends State<InquiryDetailsScreen> {
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Column(
-        children: allVisits
-            .map((visit) => _visitCard(visit as Map<String, dynamic>))
-            .toList(),
+        children: allVisits.asMap().entries.map((entry) {
+          final int visitNumber = entry.key + 1;
+          final visit = entry.value as Map<String, dynamic>;
+          return _visitCard(visit, visitNumber);
+        }).toList(),
       ),
     );
   }
@@ -398,12 +409,13 @@ class _InquiryDetailsScreenState extends State<InquiryDetailsScreen> {
     );
   }
 
-  Widget _visitCard(Map<String, dynamic> visit) {
+  Widget _visitCard(Map<String, dynamic> visit, int visitNumber) {
     final findingsList = (visit['findings'] as List<dynamic>? ?? [])
         .cast<Map<String, dynamic>>();
 
     final String dateStr = (visit['visit_date'] ?? '').toString();
     final String formattedDate = _formatVisitDate(dateStr);
+    final bool isExpanded = _visitExpansionState[visitNumber - 1] ?? false;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -422,42 +434,63 @@ class _InquiryDetailsScreenState extends State<InquiryDetailsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Icon(Icons.calendar_today, size: 14, color: Colors.grey[700]),
-                    const SizedBox(width: 6),
-                    Text(
-                      formattedDate,
+          // Visit Header with Number
+          InkWell(
+            onTap: () {
+              setState(() {
+                _visitExpansionState[visitNumber - 1] = !isExpanded;
+              });
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: const Color(0xFFE8F5E9),
+                borderRadius: BorderRadius.only(
+                  topLeft: const Radius.circular(12),
+                  topRight: const Radius.circular(12),
+                  bottomLeft: isExpanded ? Radius.zero : const Radius.circular(12),
+                  bottomRight: isExpanded ? Radius.zero : const Radius.circular(12),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF014323),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      'Visit $visitNumber',
                       style: const TextStyle(
+                        color: Colors.white,
                         fontWeight: FontWeight.w600,
-                        fontSize: 14,
+                        fontSize: 12,
                       ),
                     ),
-                    const Spacer(),
-                    Icon(Icons.access_time, size: 14, color: Colors.grey[700]),
-                    const SizedBox(width: 6),
-                    Text(
-                      (visit['visit_time'] ?? '').toString(),
-                      style: const TextStyle(fontSize: 13),
+                  ),
+                  const SizedBox(width: 12),
+                  Icon(Icons.calendar_today, size: 13, color: Colors.grey[700]),
+                  const SizedBox(width: 4),
+                  Text(
+                    formattedDate,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w500,
+                      fontSize: 13,
+                      color: Color(0xFF424242),
                     ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                _visitInfo('Officer', (visit['officer'] ?? '').toString()),
-                const SizedBox(height: 6),
-                _visitInfo('Driver', (visit['driver'] ?? '').toString()),
-                const SizedBox(height: 6),
-                _visitInfo('Vehicle', (visit['vehicle'] ?? '').toString()),
-              ],
+                  ),
+                  const Spacer(),
+                  Icon(
+                    isExpanded ? Icons.expand_less : Icons.expand_more,
+                    color: const Color(0xFF014323),
+                    size: 24,
+                  ),
+                ],
+              ),
             ),
           ),
-          if (findingsList.isNotEmpty) ...[
-            Divider(height: 1, color: Colors.grey[300]),
+          if (isExpanded) ...[
             Padding(
               padding: const EdgeInsets.all(12),
               child: Column(
@@ -465,66 +498,93 @@ class _InquiryDetailsScreenState extends State<InquiryDetailsScreen> {
                 children: [
                   Row(
                     children: [
+                      Icon(Icons.access_time, size: 14, color: Colors.grey[700]),
+                      const SizedBox(width: 6),
                       Text(
-                        'Findings (${findingsList.length})',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 13,
-                        ),
-                      ),
-                      const Spacer(),
-                      ElevatedButton.icon(
-                        onPressed: () => _navigateToFinalizeFinding(visit),
-                        icon: const Icon(Icons.check_circle, size: 16),
-                        label: const Text('Finalize'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF014323),
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                          minimumSize: Size.zero,
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                        ),
+                        (visit['visit_time'] ?? '').toString(),
+                        style: const TextStyle(fontSize: 13),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 8),
-                  ...findingsList.asMap().entries.map((entry) {
-                    final int index = entry.key + 1;
-                    final Map<String, dynamic> finding = entry.value;
-                    return _findingItem(
-                      user: (finding['user'] ?? 'Unknown').toString(),
-                      findingsText: (finding['findings'] ?? '').toString(),
-                      number: index,
-                      onEdit: () => _editFinding(visit, finding, index),
-                    );
-                  }).toList(),
+                  const SizedBox(height: 12),
+                  _visitInfo('Officer', (visit['officer'] ?? '').toString()),
+                  const SizedBox(height: 6),
+                  _visitInfo('Driver', (visit['driver'] ?? '').toString()),
+                  const SizedBox(height: 6),
+                  _visitInfo('Vehicle', (visit['vehicle'] ?? '').toString()),
                 ],
               ),
             ),
-          ],
-          Divider(height: 1, color: Colors.grey[300]),
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: () => _navigateToFindings(visit),
-                icon: const Icon(Icons.assignment, size: 18),
-                label: const Text('Findings/Proceedings/Recommendations'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF014323),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+            if (findingsList.isNotEmpty) ...[
+              Divider(height: 1, color: Colors.grey[300]),
+              Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          'Findings (${findingsList.length})',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 13,
+                          ),
+                        ),
+                        const Spacer(),
+                        ElevatedButton.icon(
+                          onPressed: () => _navigateToFinalizeFinding(visit),
+                          icon: const Icon(Icons.check_circle, size: 16),
+                          label: const Text('Finalize'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF014323),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            minimumSize: Size.zero,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    ...findingsList.asMap().entries.map((entry) {
+                      final int index = entry.key + 1;
+                      final Map<String, dynamic> finding = entry.value;
+                      return _findingItem(
+                        user: (finding['user'] ?? 'Unknown').toString(),
+                        findingsText: (finding['findings'] ?? '').toString(),
+                        number: index,
+                        onEdit: () => _editFinding(visit, finding, index),
+                      );
+                    }).toList(),
+                  ],
+                ),
+              ),
+            ],
+            Divider(height: 1, color: Colors.grey[300]),
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () => _navigateToFindings(visit),
+                  icon: const Icon(Icons.assignment, size: 18),
+                  label: const Text('Findings/Proceedings/Recommendations'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF014323),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
+          ],
         ],
       ),
     );
