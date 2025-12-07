@@ -2,7 +2,8 @@
 import 'package:flutter/material.dart';
 import 'requested_documents.dart';
 import 'add_visits.dart';
-import 'visit_findings_screen.dart'; // Add this import
+import 'visit_findings_screen.dart';
+import 'edit_finding_screen.dart';
 import 'package:cmit/features/home/model/assign_to_me_model.dart';
 
 class InquiryDetailsScreen extends StatefulWidget {
@@ -23,7 +24,6 @@ class _InquiryDetailsScreenState extends State<InquiryDetailsScreen> {
 
   // Track expansion state
   bool _detailsExpanded = true;
-  bool _teamExpanded = true;
   bool _visitsExpanded = true;
   bool _documentsExpanded = true;
 
@@ -74,6 +74,31 @@ class _InquiryDetailsScreenState extends State<InquiryDetailsScreen> {
         builder: (_) => VisitFindingsScreen(
           visit: visit,
           inquiryId: i.id.toString(),
+        ),
+      ),
+    ).then((_) {
+      // Refresh the visit data when returning from findings screen
+      setState(() {
+        allVisits = i.visits;
+      });
+    });
+  }
+
+  void _editFinding(Map<String, dynamic> visit, Map<String, dynamic> finding, int index) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => EditFindingScreen(
+          visit: visit,
+          finding: finding,
+          findingIndex: index,
+          inquiryId: i.id.toString(),
+          onSave: () {
+            // Refresh the visit data when returning
+            setState(() {
+              allVisits = i.visits;
+            });
+          },
         ),
       ),
     );
@@ -132,14 +157,6 @@ class _InquiryDetailsScreenState extends State<InquiryDetailsScreen> {
               isExpanded: _detailsExpanded,
               onToggle: () => setState(() => _detailsExpanded = !_detailsExpanded),
               child: _buildDetailsContent(),
-            ),
-            _buildCollapsibleSection(
-              title: 'Team Members',
-              icon: Icons.group,
-              count: i.teamMembers.length,
-              isExpanded: _teamExpanded,
-              onToggle: () => setState(() => _teamExpanded = !_teamExpanded),
-              child: _buildTeamContent(),
             ),
             _buildCollapsibleSection(
               title: 'Field Visits',
@@ -311,20 +328,6 @@ class _InquiryDetailsScreenState extends State<InquiryDetailsScreen> {
     );
   }
 
-  Widget _buildTeamContent() {
-    if (i.teamMembers.isEmpty) {
-      return _emptyState('No team members assigned');
-    }
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Wrap(
-        spacing: 8,
-        runSpacing: 8,
-        children: i.teamMembers.map((m) => _chip(m)).toList(),
-      ),
-    );
-  }
-
   Widget _buildVisitsContent() {
     if (allVisits.isEmpty) {
       return _emptyState('No field visits recorded');
@@ -441,13 +444,13 @@ class _InquiryDetailsScreenState extends State<InquiryDetailsScreen> {
                       user: (finding['user'] ?? 'Unknown').toString(),
                       findingsText: (finding['findings'] ?? '').toString(),
                       number: index,
+                      onEdit: () => _editFinding(visit, finding, index),
                     );
                   }).toList(),
                 ],
               ),
             ),
           ],
-          // Add Findings/Proceedings/Recommendations Button
           Divider(height: 1, color: Colors.grey[300]),
           Padding(
             padding: const EdgeInsets.all(12),
@@ -500,6 +503,7 @@ class _InquiryDetailsScreenState extends State<InquiryDetailsScreen> {
     required String user,
     required String findingsText,
     required int number,
+    required VoidCallback onEdit,
   }) {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
@@ -538,6 +542,13 @@ class _InquiryDetailsScreenState extends State<InquiryDetailsScreen> {
                     fontSize: 13,
                   ),
                 ),
+              ),
+              IconButton(
+                icon: Icon(Icons.edit, size: 16, color: Colors.blue[700]),
+                onPressed: onEdit,
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+                tooltip: 'Edit Finding',
               ),
             ],
           ),
