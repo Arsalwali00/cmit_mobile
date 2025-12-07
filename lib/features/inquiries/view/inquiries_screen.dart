@@ -72,59 +72,154 @@ class _InquiriesScreenState extends State<InquiriesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(
-        title: const Text('My Inquiries', style: TextStyle(fontWeight: FontWeight.w600)),
+        title: const Text(
+          'My Inquiries',
+          style: TextStyle(
+            fontWeight: FontWeight.w600,
+            fontSize: 20,
+            color: Color(0xFF1A1A1A),
+          ),
+        ),
         centerTitle: true,
         backgroundColor: Colors.white,
         elevation: 0,
         automaticallyImplyLeading: false,
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1),
+          child: Container(
+            color: const Color(0xFFE5E5E5),
+            height: 1,
+          ),
+        ),
       ),
       body: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: 'Search inquiries...',
-                prefixIcon: const Icon(Icons.search),
-                filled: true,
-                fillColor: Colors.grey[100],
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+          // Search Bar
+          Container(
+            color: Colors.white,
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+            child: Container(
+              decoration: BoxDecoration(
+                color: const Color(0xFFF5F5F5),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFE0E0E0)),
+              ),
+              child: TextField(
+                controller: _searchController,
+                style: const TextStyle(fontSize: 15),
+                decoration: const InputDecoration(
+                  hintText: 'Search by title, department, or person...',
+                  hintStyle: TextStyle(
+                    color: Color(0xFF9E9E9E),
+                    fontSize: 14,
+                  ),
+                  prefixIcon: Icon(
+                    Icons.search,
+                    color: Color(0xFF757575),
+                    size: 22,
+                  ),
+                  border: InputBorder.none,
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 14,
+                  ),
+                ),
               ),
             ),
           ),
+
+          // Content Area
           Expanded(
             child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
+                ? const Center(
+              child: CircularProgressIndicator(
+                strokeWidth: 3,
+                color: Color(0xFF5E35B1),
+              ),
+            )
                 : _error.isNotEmpty
+                ? Center(
+              child: Padding(
+                padding: const EdgeInsets.all(32),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.error_outline,
+                      size: 64,
+                      color: Colors.grey[400],
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      _error,
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.grey[700],
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 24),
+                    ElevatedButton.icon(
+                      onPressed: _loadInquiries,
+                      icon: const Icon(Icons.refresh),
+                      label: const Text('Retry'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF5E35B1),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 24,
+                          vertical: 12,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            )
+                : _filtered.isEmpty
                 ? Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text(_error),
+                  Icon(
+                    Icons.inbox_outlined,
+                    size: 64,
+                    color: Colors.grey[400],
+                  ),
                   const SizedBox(height: 16),
-                  ElevatedButton(onPressed: _loadInquiries, child: const Text('Retry')),
+                  Text(
+                    'No inquiries found',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.grey[700],
+                    ),
+                  ),
                 ],
               ),
             )
-                : _filtered.isEmpty
-                ? const Center(child: Text('No inquiries found'))
                 : RefreshIndicator(
               onRefresh: _loadInquiries,
-              child: ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
+              color: const Color(0xFF5E35B1),
+              child: ListView.separated(
+                padding: const EdgeInsets.all(16),
                 itemCount: _filtered.length,
+                separatorBuilder: (context, index) =>
+                const SizedBox(height: 12),
                 itemBuilder: (context, i) {
                   final inquiry = _filtered[i];
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: InquiryCard(
-                      inquiry: inquiry,
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => InquiryDetailsScreen(inquiry: inquiry)),
+                  return InquiryCard(
+                    inquiry: inquiry,
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => InquiryDetailsScreen(
+                          inquiry: inquiry,
+                        ),
                       ),
                     ),
                   );

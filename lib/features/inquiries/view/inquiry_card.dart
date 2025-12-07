@@ -1,4 +1,3 @@
-// lib/features/inquiries/view/inquiry_card.dart
 import 'package:flutter/material.dart';
 import 'package:cmit/features/home/model/assign_to_me_model.dart';
 
@@ -16,126 +15,153 @@ class InquiryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final i = inquiry;
 
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(14),
-        side: BorderSide(color: Colors.grey.shade200, width: 1),
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE0E0E0)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(14),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Title + Chairperson badge
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      i.title,
-                      style: const TextStyle(
-                        fontSize: 16.5,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black87,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Title Row
+                Text(
+                  i.title,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF1A1A1A),
+                    height: 1.3,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 12),
+
+                // Status Badges
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    _buildBadge(i.statusText, i.statusColor),
+                    _buildBadge(i.priorityText, i.priorityColor),
+                    if (i.timeFrame.isNotEmpty)
+                      _buildBadge(i.timeFrame, const Color(0xFF00897B)),
+                  ],
+                ),
+                const SizedBox(height: 16),
+
+                // Details
+                _buildDetailRow(
+                  Icons.business_outlined,
+                  i.department,
+                ),
+                const SizedBox(height: 8),
+                _buildDetailRow(
+                  Icons.person_outline,
+                  i.initiator,
+                ),
+                const SizedBox(height: 8),
+                _buildDetailRow(
+                  Icons.assignment_ind_outlined,
+                  i.assignedTo,
+                ),
+                const SizedBox(height: 8),
+                _buildDetailRow(
+                  Icons.category_outlined,
+                  i.inquiryType,
+                ),
+                const SizedBox(height: 12),
+
+                // Footer
+                Container(
+                  padding: const EdgeInsets.only(top: 12),
+                  decoration: const BoxDecoration(
+                    border: Border(
+                      top: BorderSide(
+                        color: Color(0xFFF0F0F0),
+                        width: 1,
                       ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  if (i.isChairperson)
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.deepPurple.shade100,
-                        borderRadius: BorderRadius.circular(20),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.schedule,
+                        size: 14,
+                        color: Colors.grey[500],
                       ),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.star, size: 14, color: Colors.deepPurple),
-                          SizedBox(width: 4),
-                          Text(
-                            "Chairperson",
-                            style: TextStyle(
-                              fontSize:11,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.deepPurple,
-                            ),
-                          ),
-                        ],
+                      const SizedBox(width: 6),
+                      Text(
+                        i.formattedDate,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey[600],
+                        ),
                       ),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 12),
-
-              // Status + Priority + Time Frame chips
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  _buildChip(i.statusText, i.statusColor),
-                  _buildChip(i.priorityText, i.priorityColor),
-                  if (i.timeFrame.isNotEmpty)
-                    _buildChip("Time: ${i.timeFrame}", Colors.teal.shade600),
-                ],
-              ),
-              const SizedBox(height: 12),
-
-              // Details rows
-              _buildInfoRow(Icons.business, i.department),
-              _buildInfoRow(Icons.person_outline, "Initiated by: ${i.initiator}"),
-              _buildInfoRow(Icons.assignment_ind, "Assigned to: ${i.assignedTo}"),
-              _buildInfoRow(Icons.category_outlined, i.inquiryType),
-              const SizedBox(height: 8),
-              _buildInfoRow(Icons.access_time, "Created: ${i.formattedDate}"),
-            ],
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildInfoRow(IconData icon, String text) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 3),
-      child: Row(
-        children: [
-          Icon(icon, size: 16, color: Colors.grey.shade600),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              text,
-              style: TextStyle(
-                fontSize: 13.5,
-                color: Colors.grey.shade700,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+  Widget _buildDetailRow(IconData icon, String text) {
+    return Row(
+      children: [
+        Icon(
+          icon,
+          size: 16,
+          color: const Color(0xFF757575),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            text,
+            style: const TextStyle(
+              fontSize: 13,
+              color: Color(0xFF424242),
+              height: 1.4,
             ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
-  Widget _buildChip(String label, Color color) {
+  Widget _buildBadge(String label, Color color) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.15),
-        borderRadius: BorderRadius.circular(20),
+        color: color.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(6),
       ),
       child: Text(
         label,
         style: TextStyle(
           color: color,
           fontWeight: FontWeight.w600,
-          fontSize: 11.5,
+          fontSize: 11,
         ),
       ),
     );
