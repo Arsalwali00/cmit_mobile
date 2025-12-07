@@ -4,6 +4,7 @@ import 'requested_documents.dart';
 import 'add_visits.dart';
 import 'visit_findings_screen.dart';
 import 'edit_finding_screen.dart';
+import 'finalized_finding_screen.dart';
 import 'package:cmit/features/home/model/assign_to_me_model.dart';
 
 class InquiryDetailsScreen extends StatefulWidget {
@@ -102,6 +103,25 @@ class _InquiryDetailsScreenState extends State<InquiryDetailsScreen> {
         ),
       ),
     );
+  }
+
+  void _navigateToFinalizeFinding(Map<String, dynamic> visit) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => FinalizedFindingScreen(
+          visit: visit,
+          inquiryId: i.id.toString(),
+        ),
+      ),
+    ).then((result) {
+      // Refresh the visit data when returning
+      if (result == true) {
+        setState(() {
+          allVisits = i.visits;
+        });
+      }
+    });
   }
 
   @override
@@ -429,12 +449,32 @@ class _InquiryDetailsScreenState extends State<InquiryDetailsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    'Findings (${findingsList.length})',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 13,
-                    ),
+                  Row(
+                    children: [
+                      Text(
+                        'Findings (${findingsList.length})',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13,
+                        ),
+                      ),
+                      const Spacer(),
+                      ElevatedButton.icon(
+                        onPressed: () => _navigateToFinalizeFinding(visit),
+                        icon: const Icon(Icons.check_circle, size: 16),
+                        label: const Text('Finalize'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.green[700],
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          minimumSize: Size.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 8),
                   ...findingsList.asMap().entries.map((entry) {
