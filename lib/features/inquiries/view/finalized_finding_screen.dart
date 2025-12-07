@@ -20,6 +20,7 @@ class FinalizedFindingScreen extends StatefulWidget {
 class _FinalizedFindingScreenState extends State<FinalizedFindingScreen> {
   final _formKey = GlobalKey<FormState>();
   late quill.QuillController _quillController;
+  final FocusNode _focusNode = FocusNode();
   bool _isLoading = false;
 
   @override
@@ -63,6 +64,7 @@ class _FinalizedFindingScreenState extends State<FinalizedFindingScreen> {
   @override
   void dispose() {
     _quillController.dispose();
+    _focusNode.dispose();
     super.dispose();
   }
 
@@ -89,7 +91,7 @@ class _FinalizedFindingScreenState extends State<FinalizedFindingScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Finding finalized successfully'),
-            backgroundColor: Colors.green,
+            backgroundColor: Color(0xFF014323),
           ),
         );
         Navigator.pop(context, true); // Return true to indicate success
@@ -113,66 +115,134 @@ class _FinalizedFindingScreenState extends State<FinalizedFindingScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: const Color(0xFFF8F9FA),
+      resizeToAvoidBottomInset: true,
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        leading: const BackButton(color: Colors.black87),
+        leading: const BackButton(color: Color(0xFF1A1A1A)),
         title: const Text(
           'Finalize Finding',
-          style: TextStyle(fontWeight: FontWeight.w600, color: Colors.black87),
+          style: TextStyle(
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF1A1A1A),
+            fontSize: 16,
+          ),
+        ),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1),
+          child: Container(
+            color: const Color(0xFFE5E5E5),
+            height: 1,
+          ),
         ),
       ),
-      body: Column(
-        children: [
-          _buildVisitInfo(),
-          const SizedBox(height: 8),
-          Expanded(
-            child: _buildQuillEditor(),
-          ),
-        ],
+      body: SafeArea(
+        child: Column(
+          children: [
+            Expanded(
+              child: SingleChildScrollView(
+                child: Column(
+                  children: [
+                    _buildVisitInfo(),
+                    const SizedBox(height: 12),
+                    _buildQuillEditor(),
+                  ],
+                ),
+              ),
+            ),
+            _buildBottomBar(),
+          ],
+        ),
       ),
-      bottomNavigationBar: _buildBottomBar(),
     );
   }
 
   Widget _buildVisitInfo() {
     final String dateStr = (widget.visit['visit_date'] ?? '').toString();
     final String formattedDate = _formatVisitDate(dateStr);
+    final String visitTime = (widget.visit['visit_time'] ?? '').toString();
 
     return Container(
-      width: double.infinity,
-      color: Colors.white,
+      margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE0E0E0)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(Icons.calendar_today, size: 16, color: Colors.grey[700]),
-              const SizedBox(width: 8),
-              Text(
-                formattedDate,
-                style: const TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 15,
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE8F5E9),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(
+                  Icons.calendar_today,
+                  size: 18,
+                  color: Color(0xFF014323),
                 ),
               ),
-              const SizedBox(width: 16),
-              Icon(Icons.access_time, size: 16, color: Colors.grey[700]),
-              const SizedBox(width: 8),
-              Text(
-                (widget.visit['visit_time'] ?? '').toString(),
-                style: const TextStyle(fontSize: 14),
+              const SizedBox(width: 12),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    formattedDate,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 15,
+                      color: Color(0xFF1A1A1A),
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Row(
+                    children: [
+                      Icon(Icons.access_time, size: 13, color: Colors.grey[600]),
+                      const SizedBox(width: 4),
+                      Text(
+                        visitTime,
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          _infoRow('Officer', (widget.visit['officer'] ?? '').toString()),
-          const SizedBox(height: 6),
-          _infoRow('Driver', (widget.visit['driver'] ?? '').toString()),
-          const SizedBox(height: 6),
-          _infoRow('Vehicle', (widget.visit['vehicle'] ?? '').toString()),
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF8F9FA),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: const Color(0xFFE0E0E0)),
+            ),
+            child: Column(
+              children: [
+                _infoRow('Officer', (widget.visit['officer'] ?? 'N/A').toString()),
+                const SizedBox(height: 8),
+                _infoRow('Driver', (widget.visit['driver'] ?? 'N/A').toString()),
+                const SizedBox(height: 8),
+                _infoRow('Vehicle', (widget.visit['vehicle'] ?? 'N/A').toString()),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -180,17 +250,46 @@ class _FinalizedFindingScreenState extends State<FinalizedFindingScreen> {
 
   Widget _buildQuillEditor() {
     return Container(
-      color: Colors.white,
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      constraints: BoxConstraints(
+        minHeight: MediaQuery.of(context).size.height * 0.4,
+      ),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE0E0E0)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
+          // Header
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                const Icon(Icons.edit_document, size: 20, color: Color(0xFF014323)),
+                const SizedBox(width: 8),
+                const Text(
+                  'Edit Finalized Finding',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF1A1A1A),
+                  ),
+                ),
+              ],
+            ),
+          ),
           // Toolbar
           Container(
-            decoration: BoxDecoration(
-              color: Colors.grey[50],
-              border: Border(
-                bottom: BorderSide(color: Colors.grey[300]!),
-              ),
-            ),
+            color: const Color(0xFFF8F9FA),
             child: quill.QuillToolbar.simple(
               configurations: quill.QuillSimpleToolbarConfigurations(
                 controller: _quillController,
@@ -223,22 +322,22 @@ class _FinalizedFindingScreenState extends State<FinalizedFindingScreen> {
               ),
             ),
           ),
+          const Divider(height: 1),
           // Editor
-          Expanded(
-            child: Container(
+          quill.QuillEditor.basic(
+            configurations: quill.QuillEditorConfigurations(
+              controller: _quillController,
+              placeholder: 'Edit findings here...',
               padding: const EdgeInsets.all(16),
-              child: quill.QuillEditor.basic(
-                configurations: quill.QuillEditorConfigurations(
-                  controller: _quillController,
-                  sharedConfigurations: const quill.QuillSharedConfigurations(
-                    locale: Locale('en'),
-                  ),
-                  placeholder: 'Edit findings here...',
-                  padding: EdgeInsets.zero,
-
-                ),
+              autoFocus: false,
+              expands: false,
+              scrollable: true,
+              minHeight: 300,
+              sharedConfigurations: const quill.QuillSharedConfigurations(
+                locale: Locale('en'),
               ),
             ),
+            focusNode: _focusNode,
           ),
         ],
       ),
@@ -247,7 +346,6 @@ class _FinalizedFindingScreenState extends State<FinalizedFindingScreen> {
 
   Widget _buildBottomBar() {
     return Container(
-      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         boxShadow: [
@@ -258,6 +356,7 @@ class _FinalizedFindingScreenState extends State<FinalizedFindingScreen> {
           ),
         ],
       ),
+      padding: const EdgeInsets.all(16),
       child: SafeArea(
         child: Row(
           children: [
@@ -267,9 +366,10 @@ class _FinalizedFindingScreenState extends State<FinalizedFindingScreen> {
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(10),
                   ),
-                  side: BorderSide(color: Colors.grey[400]!),
+                  side: const BorderSide(color: Color(0xFFE0E0E0)),
+                  foregroundColor: const Color(0xFF1A1A1A),
                 ),
                 child: const Text(
                   'Cancel',
@@ -303,11 +403,12 @@ class _FinalizedFindingScreenState extends State<FinalizedFindingScreen> {
                   ),
                 ),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green[700],
+                  backgroundColor: const Color(0xFF014323),
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 14),
+                  elevation: 0,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(10),
                   ),
                   disabledBackgroundColor: Colors.grey[400],
                 ),
@@ -329,13 +430,18 @@ class _FinalizedFindingScreenState extends State<FinalizedFindingScreen> {
             style: TextStyle(
               fontSize: 13,
               color: Colors.grey[600],
+              fontWeight: FontWeight.w500,
             ),
           ),
         ),
         Expanded(
           child: Text(
             value.isNotEmpty ? value : 'N/A',
-            style: const TextStyle(fontSize: 13),
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF1A1A1A),
+            ),
           ),
         ),
       ],

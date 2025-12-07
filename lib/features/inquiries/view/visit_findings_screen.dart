@@ -1,7 +1,7 @@
 // lib/features/inquiries/view/visit_findings_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_quill/flutter_quill.dart' as quill;
-import 'package:cmit/core/finding_inquiry_service.dart'; // Adjust path if needed
+import 'package:cmit/core/finding_inquiry_service.dart';
 
 class VisitFindingsScreen extends StatefulWidget {
   final Map<String, dynamic> visit;
@@ -92,10 +92,10 @@ class _VisitFindingsScreenState extends State<VisitFindingsScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(result['message'] ?? 'Findings submitted successfully!'),
-          backgroundColor: Colors.green,
+          backgroundColor: const Color(0xFF014323),
         ),
       );
-      Navigator.pop(context, true); // Return true to indicate success
+      Navigator.pop(context, true);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -122,122 +122,157 @@ class _VisitFindingsScreenState extends State<VisitFindingsScreen> {
     final String visitTime = (widget.visit['visit_time'] ?? '').toString();
 
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: const Color(0xFFF8F9FA),
+      resizeToAvoidBottomInset: true,
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        leading: const BackButton(color: Colors.black87),
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        leading: const BackButton(color: Color(0xFF1A1A1A)),
+        title: const Text(
+          'Findings / Proceedings / Recommendations',
+          style: TextStyle(
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF1A1A1A),
+            fontSize: 16,
+          ),
+        ),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1),
+          child: Container(
+            color: const Color(0xFFE5E5E5),
+            height: 1,
+          ),
+        ),
+      ),
+      body: SafeArea(
+        child: Column(
           children: [
-            const Text(
-              'Finding / Proceedings / Recommendations',
-              style: TextStyle(
-                fontWeight: FontWeight.w600,
-                color: Colors.black87,
-                fontSize: 16,
+            Expanded(
+              child: SingleChildScrollView(
+                child: Column(
+                  children: [
+                    _buildVisitInfoHeader(formattedDate, visitTime),
+                    const SizedBox(height: 12),
+                    Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 16),
+                      constraints: BoxConstraints(
+                        minHeight: MediaQuery.of(context).size.height * 0.4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0xFFE0E0E0)),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.04),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // Header
+                          Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.description, size: 20, color: Color(0xFF014323)),
+                                const SizedBox(width: 8),
+                                const Text(
+                                  'Finding Details',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                    color: Color(0xFF1A1A1A),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          // Toolbar
+                          Container(
+                            color: const Color(0xFFF8F9FA),
+                            child: quill.QuillToolbar.simple(
+                              configurations: quill.QuillSimpleToolbarConfigurations(
+                                controller: _controller,
+                                sharedConfigurations: const quill.QuillSharedConfigurations(),
+                                showAlignmentButtons: true,
+                                showBoldButton: true,
+                                showItalicButton: true,
+                                showUnderLineButton: true,
+                                showStrikeThrough: false,
+                                showColorButton: false,
+                                showBackgroundColorButton: false,
+                                showListBullets: true,
+                                showListNumbers: true,
+                                showListCheck: false,
+                                showCodeBlock: false,
+                                showQuote: false,
+                                showIndent: true,
+                                showLink: false,
+                                showUndo: true,
+                                showRedo: true,
+                                showDirection: false,
+                                showSearchButton: false,
+                                showSubscript: false,
+                                showSuperscript: false,
+                                showInlineCode: false,
+                                showFontFamily: false,
+                                showFontSize: false,
+                                showClearFormat: true,
+                                showHeaderStyle: true,
+                              ),
+                            ),
+                          ),
+                          const Divider(height: 1),
+                          // Editor
+                          quill.QuillEditor.basic(
+                            configurations: quill.QuillEditorConfigurations(
+                              controller: _controller,
+                              placeholder: 'Enter findings, proceedings, and recommendations...',
+                              padding: const EdgeInsets.all(16),
+                              autoFocus: false,
+                              expands: false,
+                              scrollable: true,
+                              minHeight: 300,
+                              sharedConfigurations: const quill.QuillSharedConfigurations(
+                                locale: Locale('en'),
+                              ),
+                            ),
+                            focusNode: _focusNode,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+                ),
               ),
             ),
-            Text(
-              'Visit $formattedDate',
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey[600],
-                fontWeight: FontWeight.w400,
-              ),
-            ),
+            _buildBottomBar(),
           ],
         ),
-        actions: [
-          _isSubmitting
-              ? const Padding(
-            padding: EdgeInsets.all(16.0),
-            child: SizedBox(
-              width: 20,
-              height: 20,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            ),
-          )
-              : TextButton.icon(
-            onPressed: _isSubmitting ? null : _submitFindings,
-            icon: const Icon(Icons.send, size: 18),
-            label: const Text('Submit'),
-            style: TextButton.styleFrom(
-              foregroundColor: Colors.blue[700],
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-            ),
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          _buildVisitInfoHeader(formattedDate, visitTime),
-          const SizedBox(height: 8),
-          Expanded(
-            child: Container(
-              color: Colors.white,
-              margin: const EdgeInsets.symmetric(horizontal: 16),
-              child: Column(
-                children: [
-                  // Toolbar
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      border: Border(bottom: BorderSide(color: Colors.grey[300]!)),
-                    ),
-                    child: Theme(
-                      data: Theme.of(context).copyWith(
-                        iconTheme: IconThemeData(color: Colors.grey[700]),
-                      ),
-                      child: quill.QuillToolbar.simple(
-                        configurations: quill.QuillSimpleToolbarConfigurations(
-                          controller: _controller,
-                          showAlignmentButtons: false,
-                          showBackgroundColorButton: false,
-                          showCodeBlock: false,
-                          showColorButton: false,
-                          showFontFamily: false,
-                          showFontSize: false,
-                          showHeaderStyle: true,
-                          showIndent: true,
-                          showListBullets: true,
-                          showListNumbers: true,
-                          showQuote: true,
-                          showBoldButton: true,
-                          showItalicButton: true,
-                          showUnderLineButton: true,
-                          showStrikeThrough: true,
-                          multiRowsDisplay: false,
-                        ),
-                      ),
-                    ),
-                  ),
-                  // Editor
-                  Expanded(
-                    child: quill.QuillEditor.basic(
-                      configurations: quill.QuillEditorConfigurations(
-                        controller: _controller,
-                        autoFocus: true,
-                        expands: false,
-                        padding: const EdgeInsets.all(16),
-                        placeholder: 'Enter findings, proceedings, and recommendations here...',
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-        ],
       ),
     );
   }
 
   Widget _buildVisitInfoHeader(String date, String time) {
     return Container(
-      width: double.infinity,
-      color: Colors.white,
+      margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE0E0E0)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -245,19 +280,43 @@ class _VisitFindingsScreenState extends State<VisitFindingsScreen> {
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(8),
+                padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: Colors.blue[50],
-                  borderRadius: BorderRadius.circular(8),
+                  color: const Color(0xFFE8F5E9),
+                  borderRadius: BorderRadius.circular(10),
                 ),
-                child: Icon(Icons.calendar_today, size: 16, color: Colors.blue[700]),
+                child: const Icon(
+                  Icons.calendar_today,
+                  size: 18,
+                  color: Color(0xFF014323),
+                ),
               ),
               const SizedBox(width: 12),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(date, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
-                  Text(time, style: TextStyle(fontSize: 13, color: Colors.grey[600])),
+                  Text(
+                    date,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 15,
+                      color: Color(0xFF1A1A1A),
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Row(
+                    children: [
+                      Icon(Icons.access_time, size: 13, color: Colors.grey[600]),
+                      const SizedBox(width: 4),
+                      Text(
+                        time,
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ],
@@ -266,9 +325,9 @@ class _VisitFindingsScreenState extends State<VisitFindingsScreen> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.grey[50],
+              color: const Color(0xFFF8F9FA),
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.grey[200]!),
+              border: Border.all(color: const Color(0xFFE0E0E0)),
             ),
             child: Column(
               children: [
@@ -290,12 +349,74 @@ class _VisitFindingsScreenState extends State<VisitFindingsScreen> {
       children: [
         SizedBox(
           width: 70,
-          child: Text('$label:', style: TextStyle(fontSize: 13, color: Colors.grey[600], fontWeight: FontWeight.w500)),
+          child: Text(
+            '$label:',
+            style: TextStyle(
+              fontSize: 13,
+              color: Colors.grey[600],
+              fontWeight: FontWeight.w500,
+            ),
+          ),
         ),
         Expanded(
-          child: Text(value, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+          child: Text(
+            value,
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF1A1A1A),
+            ),
+          ),
         ),
       ],
+    );
+  }
+
+  Widget _buildBottomBar() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, -2),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(16),
+      child: SizedBox(
+        width: double.infinity,
+        child: ElevatedButton.icon(
+          onPressed: _isSubmitting ? null : _submitFindings,
+          icon: _isSubmitting
+              ? const SizedBox(
+            height: 20,
+            width: 20,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+            ),
+          )
+              : const Icon(Icons.send, size: 18),
+          label: Text(
+            _isSubmitting ? 'Submitting...' : 'Submit Findings',
+            style: const TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF014323),
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            elevation: 0,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
