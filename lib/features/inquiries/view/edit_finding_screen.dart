@@ -1,5 +1,7 @@
 // lib/features/inquiries/view/edit_finding_screen.dart
 import 'package:flutter/material.dart';
+import 'package:flutter_quill/flutter_quill.dart';
+import 'dart:convert';
 
 class EditFindingScreen extends StatefulWidget {
   final Map<String, dynamic> visit;
@@ -22,25 +24,46 @@ class EditFindingScreen extends StatefulWidget {
 }
 
 class _EditFindingScreenState extends State<EditFindingScreen> {
-  late TextEditingController _findingsController;
+  late QuillController _controller;
   bool _isSaving = false;
+  final FocusNode _focusNode = FocusNode();
 
   @override
   void initState() {
     super.initState();
-    _findingsController = TextEditingController(
-      text: widget.finding['findings']?.toString() ?? '',
+    _initializeController();
+  }
+
+  void _initializeController() {
+    final String findingText = widget.finding['findings']?.toString() ?? '';
+
+    // Try to parse as Delta JSON first, otherwise treat as plain text
+    Document document;
+    try {
+      final deltaJson = jsonDecode(findingText);
+      document = Document.fromJson(deltaJson);
+    } catch (e) {
+      // If not JSON, treat as plain text
+      document = Document()..insert(0, findingText);
+    }
+
+    _controller = QuillController(
+      document: document,
+      selection: const TextSelection.collapsed(offset: 0),
     );
   }
 
   @override
   void dispose() {
-    _findingsController.dispose();
+    _controller.dispose();
+    _focusNode.dispose();
     super.dispose();
   }
 
   Future<void> _saveFinding() async {
-    if (_findingsController.text.trim().isEmpty) {
+    final plainText = _controller.document.toPlainText().trim();
+
+    if (plainText.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Please enter finding details'),
@@ -53,20 +76,23 @@ class _EditFindingScreenState extends State<EditFindingScreen> {
     setState(() => _isSaving = true);
 
     try {
+      // Get the Delta JSON for storage
+      final deltaJson = jsonEncode(_controller.document.toDelta().toJson());
+
       // TODO: Implement actual API call to update finding
       // Example:
       // await apiService.updateFinding(
       //   inquiryId: widget.inquiryId,
       //   visitId: widget.visit['id'].toString(),
       //   findingId: widget.finding['id'].toString(),
-      //   findings: _findingsController.text.trim(),
+      //   findings: deltaJson, // Store as Delta JSON
       // );
 
       // Simulate API call
       await Future.delayed(const Duration(seconds: 1));
 
       // Update the finding locally
-      widget.finding['findings'] = _findingsController.text.trim();
+      widget.finding['findings'] = deltaJson;
 
       if (mounted) {
         widget.onSave();
@@ -118,7 +144,7 @@ class _EditFindingScreenState extends State<EditFindingScreen> {
                 children: [
                   _buildInfoCard(user, visitDate),
                   const SizedBox(height: 8),
-                  _buildFindingEditor(),
+                  _buildQuillEditor(),
                 ],
               ),
             ),
@@ -193,45 +219,91 @@ class _EditFindingScreenState extends State<EditFindingScreen> {
     );
   }
 
-  Widget _buildFindingEditor() {
+  Widget _buildQuillEditor() {
     return Container(
       width: double.infinity,
       color: Colors.white,
-      padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Icon(Icons.description, size: 20, color: Colors.grey[700]),
-              const SizedBox(width: 8),
-              const Text(
-                'Finding Details',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black87,
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Icon(Icons.description, size: 20, color: Colors.grey[700]),
+                const SizedBox(width: 8),
+                const Text(
+                  'Finding Details',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Quill Toolbar
+          Container(
+            color: Colors.grey[50],
+            child: QuillToolbar.simple(
+              configurations: QuillSimpleToolbarConfigurations(
+                controller: _controller,
+                showAlignmentButtons: false,
+                showBackgroundColorButton: false,
+                showCenterAlignment: false,
+                showClipboardCopy: false,
+                showClipboardCut: false,
+                showClipboardPaste: false,
+                showCodeBlock: false,
+                showColorButton: false,
+                showDirection: false,
+                showDividers: true,
+                showFontFamily: false,
+                showFontSize: false,
+                showHeaderStyle: true,
+                showIndent: false,
+                showInlineCode: false,
+                showJustifyAlignment: false,
+                showLeftAlignment: false,
+                showLink: false,
+                showListCheck: true,
+                showListBullets: true,
+                showListNumbers: true,
+                showQuote: true,
+                showRedo: true,
+                showRightAlignment: false,
+                showSearchButton: false,
+                showSmallButton: false,
+                showStrikeThrough: true,
+                showSubscript: false,
+                showSuperscript: false,
+                showUnderLineButton: true,
+                showUndo: true,
+                multiRowsDisplay: false,
+              ),
+            ),
+          ),
+          const Divider(height: 1),
+          // Quill Editor
+          Container(
+            constraints: const BoxConstraints(minHeight: 300),
+            padding: const EdgeInsets.all(16),
+            child: QuillEditor.basic(
+              configurations: QuillEditorConfigurations(
+                controller: _controller,
+                placeholder: 'Enter finding details...',
+                padding: EdgeInsets.zero,
+
+                autoFocus: false,
+                expands: false,
+                scrollable: true,
+                sharedConfigurations: const QuillSharedConfigurations(
+                  locale: Locale('en'),
                 ),
               ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          TextField(
-            controller: _findingsController,
-            maxLines: 12,
-            decoration: InputDecoration(
-              hintText: 'Enter finding details...',
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: BorderSide(color: Colors.blue[700]!, width: 2),
-              ),
-              filled: true,
-              fillColor: Colors.grey[50],
+              focusNode: _focusNode,
             ),
-            style: const TextStyle(fontSize: 14, height: 1.5),
           ),
         ],
       ),
