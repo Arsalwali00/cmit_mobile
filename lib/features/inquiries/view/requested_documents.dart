@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cmit/core/document_type_service.dart';
+import 'package:cmit/core/required_documents_service.dart'; // Import the service
 import 'package:cmit/features/inquiries/model/document_type_model.dart';
 
 class RequestedDocumentsScreen extends StatefulWidget {
@@ -22,6 +23,7 @@ class _RequestedDocumentsScreenState extends State<RequestedDocumentsScreen> {
   DocumentTypeModel? _documentTypeModel;
   String? _selectedDocumentTypeId;
   bool _isLoading = true;
+  bool _isSubmitting = false;
   String? _errorMessage;
 
   @override
@@ -45,19 +47,48 @@ class _RequestedDocumentsScreenState extends State<RequestedDocumentsScreen> {
     });
   }
 
-  void _submit() {
+  Future<void> _submit() async {
     if (_formKey.currentState!.validate() && _selectedDocumentTypeId != null) {
-      final selectedName = _documentTypeModel!.getNameById(_selectedDocumentTypeId!);
+      setState(() => _isSubmitting = true);
 
-      final docData = {
-        'document_type_id': _selectedDocumentTypeId!,
-        'document_type': selectedName,
-        'inquiry_id': widget.inquiryId.toString(),
-        'requested_at': DateTime.now().toIso8601String(),
-      };
+      final result = await RequiredDocumentsService.storeRequiredDocuments(
+        inquiryId: widget.inquiryId,
+        attachmentTypeId: int.parse(_selectedDocumentTypeId!),
+      );
 
-      widget.onAddDocument(docData);
-      Navigator.pop(context);
+      if (!mounted) return;
+
+      setState(() => _isSubmitting = false);
+
+      if (result['success']) {
+        // Update local list (for immediate UI feedback)
+        final selectedName = _documentTypeModel!.getNameById(_selectedDocumentTypeId!);
+        final docData = {
+          'attachment_type_id': _selectedDocumentTypeId!,
+          'document_type': selectedName,
+          'inquiry_id': widget.inquiryId.toString(),
+          'requested_at': DateTime.now().toIso8601String(),
+        };
+
+        widget.onAddDocument(docData);
+        Navigator.pop(context);
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Document requested successfully"),
+            backgroundColor: Color(0xFF014323),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result['message'] ?? "Failed to request document"),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
     }
   }
 
@@ -133,7 +164,7 @@ class _RequestedDocumentsScreenState extends State<RequestedDocumentsScreen> {
                   ),
                   const SizedBox(height: 8),
 
-                  // Tiny Green Loader (exactly like before – just color changed)
+                  // Loading / Error / Dropdown
                   if (_isLoading)
                     const LinearProgressIndicator(
                       minHeight: 3,
@@ -144,10 +175,8 @@ class _RequestedDocumentsScreenState extends State<RequestedDocumentsScreen> {
                     Padding(
                       padding: const EdgeInsets.only(bottom: 8),
                       child: Text(_errorMessage!, style: const TextStyle(color: Colors.red, fontSize: 13)),
-                    ),
-
-                  // Dropdown
-                  if (!_isLoading)
+                    )
+                  else
                     DropdownButtonFormField<String>(
                       value: _selectedDocumentTypeId,
                       hint: const Text('Choose document type'),
@@ -177,7 +206,7 @@ class _RequestedDocumentsScreenState extends State<RequestedDocumentsScreen> {
                           .map((e) => DropdownMenuItem(value: e.key, child: Text(e.value)))
                           .toList() ??
                           [],
-                      onChanged: (value) => setState(() => _selectedDocumentTypeId = value),
+                      onChanged: _isSubmitting ? null : (value) => setState(() => _selectedDocumentTypeId = value),
                     ),
 
                   const SizedBox(height: 32),
@@ -187,7 +216,7 @@ class _RequestedDocumentsScreenState extends State<RequestedDocumentsScreen> {
                     children: [
                       Expanded(
                         child: OutlinedButton(
-                          onPressed: () => Navigator.pop(context),
+                          onPressed: _isSubmitting ? null : () => Navigator.pop(context),
                           style: OutlinedButton.styleFrom(
                             padding: const EdgeInsets.symmetric(vertical: 14),
                             side: const BorderSide(color: Color(0xFFE0E0E0)),
@@ -200,9 +229,15 @@ class _RequestedDocumentsScreenState extends State<RequestedDocumentsScreen> {
                       const SizedBox(width: 12),
                       Expanded(
                         child: ElevatedButton.icon(
-                          onPressed: _isLoading ? null : _submit,
-                          icon: const Icon(Icons.send, size: 18),
-                          label: const Text('Request', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+                          onPressed: _isSubmitting || _isLoading ? null : _submit,
+                          icon: _isSubmitting
+                              ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                          )
+                              : const Icon(Icons.send, size: 18),
+                          label: Text(_isSubmitting ? 'Sending...' : 'Request'),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF014323),
                             foregroundColor: Colors.white,

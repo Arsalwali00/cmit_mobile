@@ -28,5 +28,6 @@ class API {
   // Inside class API
   static const String storeFindingInquiry = "${ApiConfig.baseApiUrl}/store/finding/inquiries";
   static const String getDocumentTypes = "${ApiConfig.baseApiUrl}/get/document-types";
+  static const String storeRequiredDocuments = "${ApiConfig.baseApiUrl}/store/required-documents/inquiries";
 
 }

@@ -1,5 +1,6 @@
 // lib/features/inquiries/view/inquiry_details_screen.dart
 import 'package:flutter/material.dart';
+import 'package:file_picker/file_picker.dart';
 import 'requested_documents.dart';
 import 'add_visits.dart';
 import 'visit_findings_screen.dart';
@@ -28,6 +29,7 @@ class _InquiryDetailsScreenState extends State<InquiryDetailsScreen> {
   bool _visitsExpanded = false;
   bool _documentsExpanded = false;
   Map<int, bool> _visitExpansionState = {};
+  bool _isUploadingDocument = false;
 
   AssignToMeModel get i => widget.inquiry;
 
@@ -53,6 +55,72 @@ class _InquiryDetailsScreenState extends State<InquiryDetailsScreen> {
             Navigator.pop(context);
           },
         ),
+      ),
+    );
+  }
+
+  Future<void> _uploadDocument(int documentIndex) async {
+    try {
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png'],
+      );
+
+      if (result != null) {
+        setState(() => _isUploadingDocument = true);
+
+        // TODO: Implement actual upload logic here
+        // Example:
+        // final file = result.files.first;
+        // await DocumentUploadService.upload(
+        //   inquiryId: i.id,
+        //   documentId: documents[documentIndex]['id'],
+        //   file: file,
+        // );
+
+        // Simulate upload delay
+        await Future.delayed(const Duration(seconds: 2));
+
+        setState(() {
+          // Update document status
+          documents[documentIndex]['is_uploaded'] = true;
+          documents[documentIndex]['file_path'] = result.files.first.name;
+          _isUploadingDocument = false;
+        });
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Document uploaded successfully'),
+              backgroundColor: Color(0xFF014323),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      setState(() => _isUploadingDocument = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Upload failed: ${e.toString()}'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
+
+  void _viewDocument(int documentIndex) {
+    final doc = documents[documentIndex];
+    // TODO: Implement document viewing logic
+    // This could open a PDF viewer or download the file
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Opening: ${doc['document_type'] ?? doc.toString()}'),
+        backgroundColor: Color(0xFF014323),
+        behavior: SnackBarBehavior.floating,
       ),
     );
   }
@@ -388,23 +456,134 @@ class _InquiryDetailsScreenState extends State<InquiryDetailsScreen> {
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: documents
-            .map((d) => Padding(
-          padding: const EdgeInsets.only(bottom: 8),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('• ', style: TextStyle(fontSize: 16, color: Colors.grey[600])),
-              Expanded(
-                child: Text(
-                  d.toString(),
-                  style: const TextStyle(fontSize: 14, height: 1.4),
+        children: documents.asMap().entries.map((entry) {
+          final int index = entry.key;
+          final doc = entry.value;
+          return _documentItem(doc, index);
+        }).toList(),
+      ),
+    );
+  }
+
+  Widget _documentItem(dynamic doc, int index) {
+    // Extract document details
+    String documentName;
+    bool isUploaded = false;
+
+    if (doc is Map<String, dynamic>) {
+      documentName = doc['document_type']?.toString() ??
+          doc['attachment_type']?.toString() ??
+          'Document ${index + 1}';
+      isUploaded = doc['is_uploaded'] == true ||
+          doc['file_path'] != null && doc['file_path'].toString().isNotEmpty;
+    } else {
+      documentName = doc.toString();
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: isUploaded ? const Color(0xFF014323).withOpacity(0.3) : const Color(0xFFE0E0E0),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          children: [
+            // Document icon
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: isUploaded
+                    ? const Color(0xFFE8F5E9)
+                    : const Color(0xFFF5F5F5),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
+                isUploaded ? Icons.check_circle : Icons.description_outlined,
+                color: isUploaded ? const Color(0xFF014323) : Colors.grey[600],
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 12),
+
+            // Document name
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    documentName,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: Color(0xFF1A1A1A),
+                      height: 1.3,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    isUploaded ? 'Uploaded' : 'Not uploaded',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: isUploaded
+                          ? const Color(0xFF014323)
+                          : Colors.grey[600],
+                      fontWeight: isUploaded ? FontWeight.w500 : FontWeight.normal,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Action button
+            if (_isUploadingDocument)
+              const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF014323)),
+                ),
+              )
+            else if (isUploaded)
+              IconButton(
+                onPressed: () => _viewDocument(index),
+                icon: const Icon(Icons.visibility, size: 20),
+                color: const Color(0xFF014323),
+                tooltip: 'View Document',
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+              )
+            else
+              ElevatedButton.icon(
+                onPressed: () => _uploadDocument(index),
+                icon: const Icon(Icons.upload_file, size: 16),
+                label: const Text('Upload'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF014323),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  elevation: 0,
                 ),
               ),
-            ],
-          ),
-        ))
-            .toList(),
+          ],
+        ),
       ),
     );
   }
