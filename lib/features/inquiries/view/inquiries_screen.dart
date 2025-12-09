@@ -117,7 +117,7 @@ class _InquiriesScreenState extends State<InquiriesScreen> {
                   ),
                   prefixIcon: Icon(
                     Icons.search,
-                    color: Color(0xFF757575),
+                    color: Color(0xFF014323),
                     size: 22,
                   ),
                   border: InputBorder.none,
@@ -136,7 +136,7 @@ class _InquiriesScreenState extends State<InquiriesScreen> {
                 ? const Center(
               child: CircularProgressIndicator(
                 strokeWidth: 3,
-                color: Color(0xFF5E35B1),
+                color: Color(0xFF014323),
               ),
             )
                 : _error.isNotEmpty
@@ -163,15 +163,16 @@ class _InquiriesScreenState extends State<InquiriesScreen> {
                     const SizedBox(height: 24),
                     ElevatedButton.icon(
                       onPressed: _loadInquiries,
-                      icon: const Icon(Icons.refresh),
+                      icon: const Icon(Icons.refresh, size: 18),
                       label: const Text('Retry'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF5E35B1),
+                        backgroundColor: const Color(0xFF014323),
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(
                           horizontal: 24,
                           vertical: 12,
                         ),
+                        elevation: 0,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10),
                         ),
@@ -193,18 +194,32 @@ class _InquiriesScreenState extends State<InquiriesScreen> {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    'No inquiries found',
+                    _searchController.text.isEmpty
+                        ? 'No inquiries assigned'
+                        : 'No inquiries found',
                     style: TextStyle(
                       fontSize: 16,
                       color: Colors.grey[700],
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
+                  if (_searchController.text.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Text(
+                        'Try a different search term',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey[500],
+                        ),
+                      ),
+                    ),
                 ],
               ),
             )
                 : RefreshIndicator(
               onRefresh: _loadInquiries,
-              color: const Color(0xFF5E35B1),
+              color: const Color(0xFF014323),
               child: ListView.separated(
                 padding: const EdgeInsets.all(16),
                 itemCount: _filtered.length,
