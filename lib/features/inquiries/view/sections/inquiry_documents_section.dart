@@ -5,6 +5,9 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter_pdfview/flutter_pdfview.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:http/http.dart' as http;
 
 import 'package:cmit/core/required_document_upload_service.dart';
 import '../requested_documents.dart';
@@ -29,7 +32,6 @@ class _InquiryDocumentsSectionState extends State<InquiryDocumentsSection> {
   late List<Map<String, dynamic>> documents;
   final Set<int> _uploadingIndices = <int>{};
 
-  // Base URL for the API
   static const String baseUrl = 'https://cmit.sata.pk';
 
   @override
@@ -52,18 +54,15 @@ class _InquiryDocumentsSectionState extends State<InquiryDocumentsSection> {
     }
   }
 
-  // Get full URL for image/document
   String _getFullUrl(String? path) {
     if (path == null || path.isEmpty) return '';
     if (path.startsWith('http://') || path.startsWith('https://')) {
       return path;
     }
-    // Remove leading slash if present to avoid double slashes
     final cleanPath = path.startsWith('/') ? path.substring(1) : path;
     return '$baseUrl/$cleanPath';
   }
 
-  // Check if document has attachments
   bool _hasAttachments(Map<String, dynamic> doc) {
     final attachments = doc['attachments'];
     if (attachments == null) return false;
@@ -71,14 +70,12 @@ class _InquiryDocumentsSectionState extends State<InquiryDocumentsSection> {
     return attachments.isNotEmpty;
   }
 
-  // Get attachment count
   int _getAttachmentCount(Map<String, dynamic> doc) {
     final attachments = doc['attachments'];
     if (attachments == null || attachments is! List) return 0;
     return attachments.length;
   }
 
-  // MARK: - Upload Document
   Future<void> _uploadDocument(int index) async {
     final doc = documents[index];
 
@@ -172,7 +169,6 @@ class _InquiryDocumentsSectionState extends State<InquiryDocumentsSection> {
       return;
     }
 
-    // Show bottom sheet with all attachments
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.white,
@@ -313,7 +309,6 @@ class _InquiryDocumentsSectionState extends State<InquiryDocumentsSection> {
       return;
     }
 
-    // If it's an image, show in fullscreen viewer
     if (fileType.contains('image')) {
       Navigator.push(
         context,
@@ -324,12 +319,18 @@ class _InquiryDocumentsSectionState extends State<InquiryDocumentsSection> {
           ),
         ),
       );
+    } else if (fileType.contains('pdf')) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => PDFViewerScreen(
+            pdfUrl: url,
+            title: title,
+          ),
+        ),
+      );
     } else {
-      // For PDFs and other documents, you can use url_launcher
-      // Add url_launcher to pubspec.yaml: url_launcher: ^6.2.0
       _showSnackBar('Opening: $title', isError: false);
-      // Uncomment when url_launcher is added:
-      // launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
     }
   }
 
@@ -372,7 +373,6 @@ class _InquiryDocumentsSectionState extends State<InquiryDocumentsSection> {
 
           const SizedBox(height: 12),
 
-          // Request Document Button
           Center(
             child: OutlinedButton.icon(
               onPressed: _addDocument,
@@ -424,7 +424,6 @@ class _InquiryDocumentsSectionState extends State<InquiryDocumentsSection> {
         padding: const EdgeInsets.all(12),
         child: Row(
           children: [
-            // Icon
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
@@ -441,7 +440,6 @@ class _InquiryDocumentsSectionState extends State<InquiryDocumentsSection> {
             ),
             const SizedBox(width: 12),
 
-            // Title + Status
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -476,7 +474,6 @@ class _InquiryDocumentsSectionState extends State<InquiryDocumentsSection> {
               ),
             ),
 
-            // Action button / loader
             if (isUploading)
               const SizedBox(
                 width: 20,
@@ -558,6 +555,7 @@ class ImageViewerScreen extends StatelessWidget {
         backgroundColor: Colors.black,
         foregroundColor: Colors.white,
         title: Text(title),
+        elevation: 0,
       ),
       body: Center(
         child: InteractiveViewer(
@@ -597,5 +595,237 @@ class ImageViewerScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+// PDF Viewer Screen
+class PDFViewerScreen extends StatefulWidget {
+  final String pdfUrl;
+  final String title;
+
+  const PDFViewerScreen({
+    super.key,
+    required this.pdfUrl,
+    required this.title,
+  });
+
+  @override
+  State<PDFViewerScreen> createState() => _PDFViewerScreenState();
+}
+
+class _PDFViewerScreenState extends State<PDFViewerScreen> {
+  String? localFilePath;
+  bool isLoading = true;
+  bool hasError = false;
+  String errorMessage = '';
+  int currentPage = 0;
+  int totalPages = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _downloadAndSavePDF();
+  }
+
+  Future<void> _downloadAndSavePDF() async {
+    try {
+      setState(() {
+        isLoading = true;
+        hasError = false;
+      });
+
+      // Construct full URL
+      String fullUrl = widget.pdfUrl;
+      if (!fullUrl.startsWith('http://') && !fullUrl.startsWith('https://')) {
+        // Remove leading slash if present to avoid double slashes
+        final cleanPath = fullUrl.startsWith('/') ? fullUrl.substring(1) : fullUrl;
+        fullUrl = 'https://cmit.sata.pk/$cleanPath';
+      }
+
+      debugPrint('Downloading PDF from: $fullUrl');
+
+      // Download PDF
+      final response = await http.get(Uri.parse(fullUrl));
+
+      if (response.statusCode == 200) {
+        // Get temporary directory
+        final dir = await getTemporaryDirectory();
+        final file = File('${dir.path}/temp_document_${DateTime.now().millisecondsSinceEpoch}.pdf');
+
+        // Write file
+        await file.writeAsBytes(response.bodyBytes);
+
+        if (mounted) {
+          setState(() {
+            localFilePath = file.path;
+            isLoading = false;
+          });
+        }
+      } else {
+        throw Exception('Failed to download PDF: ${response.statusCode}');
+      }
+    } catch (e) {
+      debugPrint('PDF download error: $e');
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+          hasError = true;
+          errorMessage = 'Failed to load PDF: ${e.toString()}';
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.grey[200],
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF014323),
+        foregroundColor: Colors.white,
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              widget.title,
+              style: const TextStyle(fontSize: 16),
+            ),
+            if (totalPages > 0)
+              Text(
+                'Page ${currentPage + 1} of $totalPages',
+                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.normal),
+              ),
+          ],
+        ),
+        elevation: 0,
+      ),
+      body: _buildBody(),
+    );
+  }
+
+  Widget _buildBody() {
+    if (isLoading) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation(Color(0xFF014323)),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Loading PDF...',
+              style: TextStyle(color: Colors.grey[600]),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (hasError) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(
+                Icons.error_outline,
+                color: Colors.red,
+                size: 64,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Failed to load PDF',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.grey[800],
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                errorMessage,
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.grey[600]),
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton.icon(
+                onPressed: _downloadAndSavePDF,
+                icon: const Icon(Icons.refresh),
+                label: const Text('Retry'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF014323),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (localFilePath == null) {
+      return const Center(child: Text('PDF file not available'));
+    }
+
+    return PDFView(
+      filePath: localFilePath!,
+      enableSwipe: true,
+      swipeHorizontal: false,
+      autoSpacing: true,
+      pageFling: true,
+      pageSnap: true,
+      defaultPage: currentPage,
+      fitPolicy: FitPolicy.BOTH,
+      preventLinkNavigation: false,
+      onRender: (pages) {
+        if (mounted) {
+          setState(() {
+            totalPages = pages ?? 0;
+          });
+        }
+      },
+      onError: (error) {
+        debugPrint('PDF render error: $error');
+        if (mounted) {
+          setState(() {
+            hasError = true;
+            errorMessage = error.toString();
+          });
+        }
+      },
+      onPageError: (page, error) {
+        debugPrint('Page $page error: $error');
+      },
+      onViewCreated: (PDFViewController pdfViewController) {
+        // You can save this controller if you need more control
+      },
+      onPageChanged: (int? page, int? total) {
+        if (mounted && page != null) {
+          setState(() {
+            currentPage = page;
+            if (total != null) totalPages = total;
+          });
+        }
+      },
+    );
+  }
+
+  @override
+  void dispose() {
+    // Clean up the temporary file
+    if (localFilePath != null) {
+      try {
+        final file = File(localFilePath!);
+        if (file.existsSync()) {
+          file.deleteSync();
+        }
+      } catch (e) {
+        debugPrint('Error deleting temp file: $e');
+      }
+    }
+    super.dispose();
   }
 }
