@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cmit/features/splash/view/splash_screen.dart';
 import 'package:cmit/features/auth/view/login_screen.dart';
 import 'package:cmit/features/auth/view/onboarding_screen.dart'; // Updated to OnboardingScreen
-import 'package:cmit/features/auth/view/signup_screen.dart';
+
 import 'package:cmit/features/home/view/home_screen.dart';
 
 import 'package:cmit/features/profile/view/profile_screen.dart';
@@ -32,7 +32,7 @@ class Routes {
       initial: (context) => SplashScreen(),
       welcome: (context) => OnboardingScreen(), // Updated to OnboardingScreen
       login: (context) => LoginScreen(),
-      signup: (context) => SignUpScreen(),
+
       home: (context) => HomeScreen(),
 
       profile: (context) => ProfileScreen(),
@@ -51,8 +51,7 @@ class Routes {
         return MaterialPageRoute(builder: (_) => OnboardingScreen()); // Updated to OnboardingScreen
       case Routes.login:
         return MaterialPageRoute(builder: (_) => LoginScreen());
-      case Routes.signup:
-        return MaterialPageRoute(builder: (_) => SignUpScreen());
+
       case Routes.home:
         return MaterialPageRoute(builder: (_) => HomeScreen());
       case Routes.securitySettings:

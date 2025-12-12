@@ -29,6 +29,9 @@ class _InquiryDocumentsSectionState extends State<InquiryDocumentsSection> {
   late List<Map<String, dynamic>> documents;
   final Set<int> _uploadingIndices = <int>{};
 
+  // Base URL for the API
+  static const String baseUrl = 'https://cmit.sata.pk';
+
   @override
   void initState() {
     super.initState();
@@ -47,6 +50,32 @@ class _InquiryDocumentsSectionState extends State<InquiryDocumentsSection> {
             .toList();
       });
     }
+  }
+
+  // Get full URL for image/document
+  String _getFullUrl(String? path) {
+    if (path == null || path.isEmpty) return '';
+    if (path.startsWith('http://') || path.startsWith('https://')) {
+      return path;
+    }
+    // Remove leading slash if present to avoid double slashes
+    final cleanPath = path.startsWith('/') ? path.substring(1) : path;
+    return '$baseUrl/$cleanPath';
+  }
+
+  // Check if document has attachments
+  bool _hasAttachments(Map<String, dynamic> doc) {
+    final attachments = doc['attachments'];
+    if (attachments == null) return false;
+    if (attachments is! List) return false;
+    return attachments.isNotEmpty;
+  }
+
+  // Get attachment count
+  int _getAttachmentCount(Map<String, dynamic> doc) {
+    final attachments = doc['attachments'];
+    if (attachments == null || attachments is! List) return 0;
+    return attachments.length;
   }
 
   // MARK: - Upload Document
@@ -136,11 +165,172 @@ class _InquiryDocumentsSectionState extends State<InquiryDocumentsSection> {
 
   void _viewDocument(int index) {
     final doc = documents[index];
-    final name = doc['document_type'] ??
-        doc['attachment_type'] ??
-        'Document ${index + 1}';
-    _showSnackBar('Opening: $name', isError: false);
-    // TODO: Implement actual document viewer (PDF/image)
+    final attachments = doc['attachments'] as List?;
+
+    if (attachments == null || attachments.isEmpty) {
+      _showSnackBar('No attachments available', isError: true);
+      return;
+    }
+
+    // Show bottom sheet with all attachments
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => _buildAttachmentsSheet(doc, attachments),
+    );
+  }
+
+  Widget _buildAttachmentsSheet(Map<String, dynamic> doc, List attachments) {
+    final documentName = doc['attachment_type']?.toString() ?? 'Document';
+
+    return DraggableScrollableSheet(
+      initialChildSize: 0.7,
+      minChildSize: 0.5,
+      maxChildSize: 0.95,
+      expand: false,
+      builder: (context, scrollController) {
+        return Container(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      documentName,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF1A1A1A),
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close),
+                    color: Colors.grey[600],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Text(
+                '${attachments.length} ${attachments.length == 1 ? 'attachment' : 'attachments'}',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey[600],
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Divider(height: 1),
+              const SizedBox(height: 12),
+              Expanded(
+                child: ListView.builder(
+                  controller: scrollController,
+                  itemCount: attachments.length,
+                  itemBuilder: (context, index) {
+                    final attachment = attachments[index] as Map<String, dynamic>;
+                    return _buildAttachmentItem(attachment, index);
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildAttachmentItem(Map<String, dynamic> attachment, int index) {
+    final fileType = attachment['file_type']?.toString() ?? '';
+    final link = attachment['link']?.toString() ?? '';
+    final attachmentType = attachment['attachment_type']?.toString() ?? 'File';
+    final fullUrl = _getFullUrl(link);
+
+    IconData icon;
+    Color iconColor;
+
+    if (fileType.contains('image')) {
+      icon = Icons.image;
+      iconColor = Colors.blue[700]!;
+    } else if (fileType.contains('pdf')) {
+      icon = Icons.picture_as_pdf;
+      iconColor = Colors.red[700]!;
+    } else {
+      icon = Icons.insert_drive_file;
+      iconColor = Colors.grey[700]!;
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8F9FA),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: const Color(0xFFE0E0E0)),
+      ),
+      child: ListTile(
+        leading: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: iconColor.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(icon, color: iconColor, size: 24),
+        ),
+        title: Text(
+          attachmentType,
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: Color(0xFF1A1A1A),
+          ),
+        ),
+        subtitle: Text(
+          fileType,
+          style: TextStyle(
+            fontSize: 12,
+            color: Colors.grey[600],
+          ),
+        ),
+        trailing: IconButton(
+          onPressed: () => _openDocument(fullUrl, fileType, attachmentType),
+          icon: const Icon(Icons.open_in_new),
+          color: const Color(0xFF014323),
+          tooltip: 'Open',
+        ),
+      ),
+    );
+  }
+
+  void _openDocument(String url, String fileType, String title) {
+    if (url.isEmpty) {
+      _showSnackBar('Document URL not available', isError: true);
+      return;
+    }
+
+    // If it's an image, show in fullscreen viewer
+    if (fileType.contains('image')) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ImageViewerScreen(
+            imageUrl: url,
+            title: title,
+          ),
+        ),
+      );
+    } else {
+      // For PDFs and other documents, you can use url_launcher
+      // Add url_launcher to pubspec.yaml: url_launcher: ^6.2.0
+      _showSnackBar('Opening: $title', isError: false);
+      // Uncomment when url_launcher is added:
+      // launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+    }
   }
 
   void _addDocument() {
@@ -208,9 +398,8 @@ class _InquiryDocumentsSectionState extends State<InquiryDocumentsSection> {
         doc['attachment_type']?.toString() ??
         'Document ${index + 1}';
 
-    final bool isUploaded = doc['is_uploaded'] == true ||
-        (doc['file_path']?.toString().isNotEmpty ?? false);
-
+    final bool hasAttachments = _hasAttachments(doc);
+    final int attachmentCount = _getAttachmentCount(doc);
     final bool isUploading = _uploadingIndices.contains(index);
 
     return Container(
@@ -219,7 +408,7 @@ class _InquiryDocumentsSectionState extends State<InquiryDocumentsSection> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(10),
         border: Border.all(
-          color: isUploaded
+          color: hasAttachments
               ? const Color(0xFF014323).withOpacity(0.3)
               : const Color(0xFFE0E0E0),
         ),
@@ -239,14 +428,14 @@ class _InquiryDocumentsSectionState extends State<InquiryDocumentsSection> {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: isUploaded
+                color: hasAttachments
                     ? const Color(0xFFE8F5E9)
                     : const Color(0xFFF5F5F5),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(
-                isUploaded ? Icons.check_circle : Icons.description_outlined,
-                color: isUploaded ? const Color(0xFF014323) : Colors.grey[600],
+                hasAttachments ? Icons.check_circle : Icons.description_outlined,
+                color: hasAttachments ? const Color(0xFF014323) : Colors.grey[600],
                 size: 20,
               ),
             ),
@@ -269,18 +458,18 @@ class _InquiryDocumentsSectionState extends State<InquiryDocumentsSection> {
                   Text(
                     isUploading
                         ? 'Uploading...'
-                        : isUploaded
-                        ? 'Uploaded'
+                        : hasAttachments
+                        ? '$attachmentCount ${attachmentCount == 1 ? 'file' : 'files'} uploaded'
                         : 'Not uploaded',
                     style: TextStyle(
                       fontSize: 12,
                       color: isUploading
                           ? Colors.orange[700]
-                          : isUploaded
+                          : hasAttachments
                           ? const Color(0xFF014323)
                           : Colors.grey[600],
                       fontWeight:
-                      isUploading || isUploaded ? FontWeight.w500 : FontWeight.normal,
+                      isUploading || hasAttachments ? FontWeight.w500 : FontWeight.normal,
                     ),
                   ),
                 ],
@@ -297,12 +486,23 @@ class _InquiryDocumentsSectionState extends State<InquiryDocumentsSection> {
                   valueColor: AlwaysStoppedAnimation(Color(0xFF014323)),
                 ),
               )
-            else if (isUploaded)
-              IconButton(
+            else if (hasAttachments)
+              ElevatedButton.icon(
                 onPressed: () => _viewDocument(index),
-                icon: const Icon(Icons.visibility, size: 20),
-                color: const Color(0xFF014323),
-                tooltip: 'View Document',
+                icon: const Icon(Icons.visibility, size: 16),
+                label: Text(
+                  attachmentCount > 1 ? 'View All' : 'View',
+                  style: const TextStyle(fontSize: 13),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF014323),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  elevation: 0,
+                ),
               )
             else
               ElevatedButton.icon(
@@ -333,6 +533,67 @@ class _InquiryDocumentsSectionState extends State<InquiryDocumentsSection> {
           message,
           style: TextStyle(color: Colors.grey[500], fontSize: 14),
           textAlign: TextAlign.center,
+        ),
+      ),
+    );
+  }
+}
+
+// Image Viewer Screen
+class ImageViewerScreen extends StatelessWidget {
+  final String imageUrl;
+  final String title;
+
+  const ImageViewerScreen({
+    super.key,
+    required this.imageUrl,
+    required this.title,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        foregroundColor: Colors.white,
+        title: Text(title),
+      ),
+      body: Center(
+        child: InteractiveViewer(
+          minScale: 0.5,
+          maxScale: 4.0,
+          child: Image.network(
+            imageUrl,
+            fit: BoxFit.contain,
+            loadingBuilder: (context, child, loadingProgress) {
+              if (loadingProgress == null) return child;
+              return Center(
+                child: CircularProgressIndicator(
+                  value: loadingProgress.expectedTotalBytes != null
+                      ? loadingProgress.cumulativeBytesLoaded /
+                      loadingProgress.expectedTotalBytes!
+                      : null,
+                  color: Colors.white,
+                ),
+              );
+            },
+            errorBuilder: (context, error, stackTrace) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.error_outline, color: Colors.white, size: 48),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Failed to load image',
+                      style: TextStyle(color: Colors.grey[400]),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
         ),
       ),
     );
