@@ -32,7 +32,6 @@ class _InquiryDocumentsSectionState extends State<InquiryDocumentsSection> {
   @override
   void initState() {
     super.initState();
-    // Fixed the broken line that caused a compile error
     documents = widget.initialDocuments
         .map((e) => Map<String, dynamic>.from(e as Map))
         .toList();
@@ -67,7 +66,7 @@ class _InquiryDocumentsSectionState extends State<InquiryDocumentsSection> {
     );
 
     if (result == null || result.files.isEmpty || result.files.first.path == null) {
-      return; // user cancelled
+      return;
     }
 
     setState(() => _uploadingIndices.add(index));
@@ -89,7 +88,6 @@ class _InquiryDocumentsSectionState extends State<InquiryDocumentsSection> {
       }[extension] ??
           'application/octet-stream';
 
-      // Full data URI – exactly what your backend expects
       final String dataUri = 'data:$mimeType;base64,${base64Encode(bytes)}';
 
       final uploadResult = await RequiredDocumentUploadService.uploadDocument(
@@ -157,7 +155,7 @@ class _InquiryDocumentsSectionState extends State<InquiryDocumentsSection> {
           inquiryId: parsedInquiryId,
           onAddDocument: (newDoc) {
             setState(() {
-              documents.add(newDoc as Map<String, dynamic>);
+              documents.add(newDoc);
             });
             widget.onDocumentsChanged(documents);
           },
@@ -168,29 +166,38 @@ class _InquiryDocumentsSectionState extends State<InquiryDocumentsSection> {
 
   @override
   Widget build(BuildContext context) {
-    if (documents.isEmpty) {
-      return _emptyState('No documents requested');
-    }
-
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          ...documents.asMap().entries.map((entry) {
-            final int index = entry.key;
-            final Map<String, dynamic> doc = entry.value;
-            return _documentItem(doc, index);
-          }).toList(),
+          if (documents.isEmpty)
+            _emptyState('No documents requested yet')
+          else
+            ...documents.asMap().entries.map((entry) {
+              final int index = entry.key;
+              final Map<String, dynamic> doc = entry.value;
+              return _documentItem(doc, index);
+            }).toList(),
+
           const SizedBox(height: 12),
-          // Optional: Add button if you allow adding extra documents
-          // Center(
-          //   child: OutlinedButton.icon(
-          //     onPressed: _addDocument,
-          //     icon: const Icon(Icons.add),
-          //     label: const Text('Request Additional Document'),
-          //   ),
-          // ),
+
+          // Request Document Button
+          Center(
+            child: OutlinedButton.icon(
+              onPressed: _addDocument,
+              icon: const Icon(Icons.add, size: 18),
+              label: const Text('Request Document'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: const Color(0xFF014323),
+                side: const BorderSide(color: Color(0xFF014323)),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -321,7 +328,7 @@ class _InquiryDocumentsSectionState extends State<InquiryDocumentsSection> {
   Widget _emptyState(String message) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(32),
+        padding: const EdgeInsets.symmetric(vertical: 24),
         child: Text(
           message,
           style: TextStyle(color: Colors.grey[500], fontSize: 14),

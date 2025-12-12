@@ -189,12 +189,12 @@ class _InquiryDetailsScreenState extends State<InquiryDetailsScreen> {
               count: allVisits.length,
               isExpanded: _visitsExpanded,
               onToggle: () => setState(() => _visitsExpanded = !_visitsExpanded),
-              onAdd: _addVisit,
               child: InquiryVisitsSection(
                 visits: allVisits,
                 onNavigateToFindings: _navigateToFindings,
                 onEditFinding: _editFinding,
                 onNavigateToFinalizeFinding: _navigateToFinalizeFinding,
+                onAddVisit: _addVisit,
               ),
             ),
 
@@ -272,14 +272,6 @@ class _InquiryDetailsScreenState extends State<InquiryDetailsScreen> {
                     ),
                   ],
                   const Spacer(),
-                  if (onAdd != null)
-                    IconButton(
-                      icon: const Icon(Icons.add, size: 20, color: Color(0xFF014323)),
-                      onPressed: onAdd,
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                    ),
-                  const SizedBox(width: 8),
                   Icon(
                     isExpanded ? Icons.expand_less : Icons.expand_more,
                     color: Colors.grey[600],

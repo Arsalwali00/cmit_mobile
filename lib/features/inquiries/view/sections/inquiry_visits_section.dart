@@ -6,6 +6,7 @@ class InquiryVisitsSection extends StatefulWidget {
   final Function(Map<String, dynamic>) onNavigateToFindings;
   final Function(Map<String, dynamic>, Map<String, dynamic>, int) onEditFinding;
   final Function(Map<String, dynamic>) onNavigateToFinalizeFinding;
+  final VoidCallback onAddVisit;
 
   const InquiryVisitsSection({
     super.key,
@@ -13,6 +14,7 @@ class InquiryVisitsSection extends StatefulWidget {
     required this.onNavigateToFindings,
     required this.onEditFinding,
     required this.onNavigateToFinalizeFinding,
+    required this.onAddVisit,
   });
 
   @override
@@ -32,18 +34,38 @@ class _InquiryVisitsSectionState extends State<InquiryVisitsSection> {
 
   @override
   Widget build(BuildContext context) {
-    if (widget.visits.isEmpty) {
-      return _emptyState('No field visits recorded');
-    }
-
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Column(
-        children: widget.visits.asMap().entries.map((entry) {
-          final int visitNumber = entry.key + 1;
-          final visit = entry.value as Map<String, dynamic>;
-          return _visitCard(visit, visitNumber);
-        }).toList(),
+        children: [
+          if (widget.visits.isEmpty)
+            _emptyState('No field visits recorded yet')
+          else
+            ...widget.visits.asMap().entries.map((entry) {
+              final int visitNumber = entry.key + 1;
+              final visit = entry.value as Map<String, dynamic>;
+              return _visitCard(visit, visitNumber);
+            }).toList(),
+
+          const SizedBox(height: 12),
+
+          // Add Visit Button
+          Center(
+            child: OutlinedButton.icon(
+              onPressed: widget.onAddVisit,
+              icon: const Icon(Icons.add, size: 18),
+              label: const Text('Add Field Visit'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: const Color(0xFF014323),
+                side: const BorderSide(color: Color(0xFF014323)),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -327,15 +349,15 @@ class _InquiryVisitsSectionState extends State<InquiryVisitsSection> {
 
   Widget _emptyState(String message) {
     return Padding(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.symmetric(vertical: 24),
       child: Center(
         child: Text(
           message,
           style: TextStyle(
             color: Colors.grey[500],
-            fontStyle: FontStyle.italic,
-            fontSize: 13,
+            fontSize: 14,
           ),
+          textAlign: TextAlign.center,
         ),
       ),
     );
