@@ -1,6 +1,5 @@
 // lib/features/inquiries/view/inquiry_details_screen.dart
 import 'package:flutter/material.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:cmit/features/home/model/assign_to_me_model.dart';
 
 // Import section widgets
@@ -10,7 +9,6 @@ import 'sections/inquiry_visits_section.dart';
 import 'sections/inquiry_documents_section.dart';
 
 // Import navigation screens
-import 'requested_documents.dart';
 import 'add_visits.dart';
 import 'visit_findings_screen.dart';
 import 'edit_finding_screen.dart';
@@ -36,7 +34,6 @@ class _InquiryDetailsScreenState extends State<InquiryDetailsScreen> {
   bool _detailsExpanded = false;
   bool _visitsExpanded = false;
   bool _documentsExpanded = false;
-  bool _isUploadingDocument = false;
 
   AssignToMeModel get i => widget.inquiry;
 
@@ -45,75 +42,6 @@ class _InquiryDetailsScreenState extends State<InquiryDetailsScreen> {
     super.initState();
     allVisits = i.visits;
     documents = i.requiredDocuments;
-  }
-
-  void _addDocument() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => RequestedDocumentsScreen(
-          inquiryId: i.id,
-          onAddDocument: (doc) {
-            setState(() => documents.add(doc));
-            Navigator.pop(context);
-          },
-        ),
-      ),
-    );
-  }
-
-  Future<void> _uploadDocument(int documentIndex) async {
-    try {
-      FilePickerResult? result = await FilePicker.platform.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: ['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png'],
-      );
-
-      if (result != null) {
-        setState(() => _isUploadingDocument = true);
-
-        // TODO: Implement actual upload logic here
-        await Future.delayed(const Duration(seconds: 2));
-
-        setState(() {
-          documents[documentIndex]['is_uploaded'] = true;
-          documents[documentIndex]['file_path'] = result.files.first.name;
-          _isUploadingDocument = false;
-        });
-
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Document uploaded successfully'),
-              backgroundColor: Color(0xFF014323),
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-        }
-      }
-    } catch (e) {
-      setState(() => _isUploadingDocument = false);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Upload failed: ${e.toString()}'),
-            backgroundColor: Colors.red,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
-    }
-  }
-
-  void _viewDocument(int documentIndex) {
-    final doc = documents[documentIndex];
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Opening: ${doc['document_type'] ?? doc.toString()}'),
-        backgroundColor: const Color(0xFF014323),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
   }
 
   void _addVisit() {
@@ -277,12 +205,14 @@ class _InquiryDetailsScreenState extends State<InquiryDetailsScreen> {
               count: documents.length,
               isExpanded: _documentsExpanded,
               onToggle: () => setState(() => _documentsExpanded = !_documentsExpanded),
-              onAdd: _addDocument,
               child: InquiryDocumentsSection(
-                documents: documents,
-                onUploadDocument: _uploadDocument,
-                onViewDocument: _viewDocument,
-                isUploadingDocument: _isUploadingDocument,
+                initialDocuments: documents,
+                inquiryId: i.id,
+                onDocumentsChanged: (updatedDocs) {
+                  setState(() {
+                    documents = updatedDocs;
+                  });
+                },
               ),
             ),
 
