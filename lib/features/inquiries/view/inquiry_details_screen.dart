@@ -14,7 +14,7 @@ import 'add_visits.dart';
 import 'visit_findings_screen.dart';
 import 'edit_finding_screen.dart';
 import 'finalized_finding_screen.dart';
-import 'add_annex.dart'; // Add this import
+import 'add_annex.dart';
 
 class InquiryDetailsScreen extends StatefulWidget {
   final AssignToMeModel inquiry;
@@ -46,8 +46,7 @@ class _InquiryDetailsScreenState extends State<InquiryDetailsScreen> {
     super.initState();
     allVisits = i.visits;
     documents = i.requiredDocuments;
-    // Initialize annexes - adjust based on your model structure
-    allAnnexes = []; // TODO: Replace with i.annexes when available in model
+    allAnnexes = i.annexes;  // NOW PROPERLY INITIALIZED FROM MODEL
   }
 
   void _addVisit() {
@@ -122,12 +121,9 @@ class _InquiryDetailsScreenState extends State<InquiryDetailsScreen> {
   // Annex related methods
   void _refreshAnnexes() {
     setState(() {
-      // TODO: Fetch annexes from API or model
-      // For now, you can reload from the inquiry model if available
-      // allAnnexes = i.annexes;
-
-      // Or fetch from API:
-      // _fetchAnnexes();
+      // TODO: Reload inquiry data from API to get updated annexes
+      // For now, keeping the current annexes
+      allAnnexes = i.annexes;
     });
   }
 
@@ -142,25 +138,38 @@ class _InquiryDetailsScreenState extends State<InquiryDetailsScreen> {
     //     ),
     //   ),
     // );
-    print('View Annex Details: ${annex['title']}');
+
+    // For now, show a dialog with annex info
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(annex['title'] ?? 'Annex Details'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('ID: ${annex['id'] ?? annex['annex_id']}'),
+            const SizedBox(height: 8),
+            Text('Sort Order: ${annex['sort_order'] ?? 'N/A'}'),
+            const SizedBox(height: 8),
+            Text('Files: ${(annex['annex_files'] as List?)?.length ?? 0}'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _editAnnex(Map<String, dynamic> annex, int annexNumber) {
     // TODO: Navigate to Edit Annex Screen when you create it
-    // Navigator.push(
-    //   context,
-    //   MaterialPageRoute(
-    //     builder: (_) => EditAnnexScreen(
-    //       annex: annex,
-    //       annexNumber: annexNumber,
-    //       inquiryId: i.id.toString(),
-    //       onSave: () {
-    //         _refreshAnnexes();
-    //       },
-    //     ),
-    //   ),
-    // );
-    print('Edit Annex #$annexNumber');
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Edit Annex #$annexNumber - Coming soon')),
+    );
   }
 
   @override
@@ -256,11 +265,11 @@ class _InquiryDetailsScreenState extends State<InquiryDetailsScreen> {
               isExpanded: _annexExpanded,
               onToggle: () => setState(() => _annexExpanded = !_annexExpanded),
               child: InquiryAnnexSection(
-                inquiryId: i.id, // Added inquiryId
+                inquiryId: i.id,
                 annexes: allAnnexes,
                 onNavigateToAnnexDetails: _navigateToAnnexDetails,
                 onEditAnnex: _editAnnex,
-                onAnnexAdded: _refreshAnnexes, // Changed from onAddAnnex to onAnnexAdded
+                onAnnexAdded: _refreshAnnexes,
               ),
             ),
 

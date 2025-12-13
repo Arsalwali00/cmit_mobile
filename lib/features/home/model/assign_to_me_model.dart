@@ -1,5 +1,5 @@
 // lib/features/home/model/assign_to_me_model.dart
-// FULLY UPDATED – WITH robust _parseVisits that handles all findings formats
+// FULLY UPDATED – WITH annexes support
 
 import 'package:flutter/material.dart';
 
@@ -22,6 +22,7 @@ class AssignToMeModel {
 
   final List<dynamic> recommendations;
   final List<dynamic> visits;
+  final List<dynamic> annexes;  // ADDED
   final List<dynamic> requiredDocuments;
 
   const AssignToMeModel({
@@ -42,6 +43,7 @@ class AssignToMeModel {
     required this.createdAt,
     this.recommendations = const [],
     this.visits = const [],
+    this.annexes = const [],  // ADDED
     this.requiredDocuments = const [],
   });
 
@@ -64,6 +66,7 @@ class AssignToMeModel {
       createdAt: DateTime.tryParse(json['created_at']?.toString() ?? '') ?? DateTime.now(),
       recommendations: json['recommendations'] ?? [],
       visits: _parseVisits(json['visits'] ?? []),
+      annexes: _parseAnnexes(json['annexes'] ?? []),  // ADDED
       requiredDocuments: json['required_documents'] ?? [],
     );
   }
@@ -166,6 +169,37 @@ class AssignToMeModel {
     }).toList();
   }
 
+  // PARSE ANNEXES FROM API
+  static List<dynamic> _parseAnnexes(dynamic data) {
+    if (data == null || data is! List) return [];
+
+    return data.map((annex) {
+      if (annex is! Map<String, dynamic>) return annex;
+
+      final Map<String, dynamic> processedAnnex = Map.from(annex);
+
+      // Normalize the ID field
+      if (processedAnnex.containsKey('annex_id') && !processedAnnex.containsKey('id')) {
+        processedAnnex['id'] = processedAnnex['annex_id'];
+      }
+
+      // Parse annex files if present
+      final dynamic filesData = annex['annex_files'];
+      if (filesData is List) {
+        processedAnnex['annex_files'] = filesData.map((file) {
+          if (file is Map<String, dynamic>) {
+            return Map<String, dynamic>.from(file);
+          }
+          return file;
+        }).toList();
+      } else {
+        processedAnnex['annex_files'] = [];
+      }
+
+      return processedAnnex;
+    }).toList();
+  }
+
   // Convert model back to JSON
   Map<String, dynamic> toJson() {
     return {
@@ -186,6 +220,7 @@ class AssignToMeModel {
       'created_at': createdAt.toIso8601String(),
       'recommendations': recommendations,
       'visits': visits,
+      'annexes': annexes,  // ADDED
       'required_documents': requiredDocuments,
     };
   }
@@ -209,6 +244,7 @@ class AssignToMeModel {
     DateTime? createdAt,
     List<dynamic>? recommendations,
     List<dynamic>? visits,
+    List<dynamic>? annexes,  // ADDED
     List<dynamic>? requiredDocuments,
   }) {
     return AssignToMeModel(
@@ -229,6 +265,7 @@ class AssignToMeModel {
       createdAt: createdAt ?? this.createdAt,
       recommendations: recommendations ?? this.recommendations,
       visits: visits ?? this.visits,
+      annexes: annexes ?? this.annexes,  // ADDED
       requiredDocuments: requiredDocuments ?? this.requiredDocuments,
     );
   }
@@ -307,6 +344,15 @@ extension AssignToMeModelX on AssignToMeModel {
     }).toList();
   }
 
+  List<AnnexInfo> get parsedAnnexes {
+    return annexes.map((annex) {
+      if (annex is Map<String, dynamic>) {
+        return AnnexInfo.fromJson(annex);
+      }
+      return AnnexInfo.empty();
+    }).toList();
+  }
+
   List<FindingInfo> get allFindings {
     return parsedVisits.expand((visit) => visit.findings).toList();
   }
@@ -314,6 +360,7 @@ extension AssignToMeModelX on AssignToMeModel {
   bool get hasVisits => visits.isNotEmpty;
   bool get hasFindings => allFindings.isNotEmpty;
   bool get hasRecommendations => recommendations.isNotEmpty;
+  bool get hasAnnexes => annexes.isNotEmpty;  // ADDED
 }
 
 // Helper class for Visit information
@@ -408,4 +455,87 @@ class FindingInfo {
       findings: '',
     );
   }
+}
+
+// Helper class for Annex information
+class AnnexInfo {
+  final int id;
+  final String title;
+  final String sortOrder;
+  final List<AnnexFile> files;
+
+  const AnnexInfo({
+    required this.id,
+    required this.title,
+    required this.sortOrder,
+    required this.files,
+  });
+
+  factory AnnexInfo.fromJson(Map<String, dynamic> json) {
+    return AnnexInfo(
+      id: int.tryParse((json['id'] ?? json['annex_id']).toString()) ?? 0,
+      title: (json['title'] ?? 'Untitled Annex').toString().trim(),
+      sortOrder: (json['sort_order'] ?? '0').toString(),
+      files: _parseFiles(json['annex_files'] ?? []),
+    );
+  }
+
+  factory AnnexInfo.empty() {
+    return const AnnexInfo(
+      id: 0,
+      title: '',
+      sortOrder: '0',
+      files: [],
+    );
+  }
+
+  static List<AnnexFile> _parseFiles(dynamic data) {
+    if (data == null || data is! List) return [];
+
+    return data.map((file) {
+      if (file is Map<String, dynamic>) {
+        return AnnexFile.fromJson(file);
+      }
+      return AnnexFile.empty();
+    }).toList();
+  }
+
+  bool get hasFiles => files.isNotEmpty;
+}
+
+// Helper class for Annex File information
+class AnnexFile {
+  final int id;
+  final String fileType;
+  final String link;
+
+  const AnnexFile({
+    required this.id,
+    required this.fileType,
+    required this.link,
+  });
+
+  factory AnnexFile.fromJson(Map<String, dynamic> json) {
+    return AnnexFile(
+      id: int.tryParse((json['annex_file_id'] ?? json['id']).toString()) ?? 0,
+      fileType: (json['file_type'] ?? '').toString().trim(),
+      link: (json['link'] ?? '').toString().trim(),
+    );
+  }
+
+  factory AnnexFile.empty() {
+    return const AnnexFile(
+      id: 0,
+      fileType: '',
+      link: '',
+    );
+  }
+
+  bool get isImage => fileType.toLowerCase().contains('image') ||
+      link.toLowerCase().endsWith('.jpg') ||
+      link.toLowerCase().endsWith('.jpeg') ||
+      link.toLowerCase().endsWith('.png');
+
+  bool get isPdf => fileType.toLowerCase().contains('pdf') ||
+      link.toLowerCase().endsWith('.pdf');
 }
