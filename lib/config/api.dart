@@ -31,5 +31,7 @@ class API {
   static const String storeRequiredDocuments = "${ApiConfig.baseApiUrl}/store/required-documents/inquiries";
   // Inside class API
   static const String uploadRequiredDocuments = "${ApiConfig.baseApiUrl}/upload/required-documents/inquiries";
+  // Inside class API (add this line)
+  static const String storeAnnex = "${ApiConfig.baseApiUrl}/store/annex";
 
 }

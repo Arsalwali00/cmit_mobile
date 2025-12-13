@@ -6,6 +6,7 @@ import 'package:cmit/features/home/model/assign_to_me_model.dart';
 import 'sections/inquiry_header_section.dart';
 import 'sections/inquiry_details_section.dart';
 import 'sections/inquiry_visits_section.dart';
+import 'sections/inquiry_annex_section.dart';
 import 'sections/inquiry_documents_section.dart';
 
 // Import navigation screens
@@ -13,6 +14,7 @@ import 'add_visits.dart';
 import 'visit_findings_screen.dart';
 import 'edit_finding_screen.dart';
 import 'finalized_finding_screen.dart';
+import 'add_annex.dart'; // Add this import
 
 class InquiryDetailsScreen extends StatefulWidget {
   final AssignToMeModel inquiry;
@@ -29,10 +31,12 @@ class InquiryDetailsScreen extends StatefulWidget {
 class _InquiryDetailsScreenState extends State<InquiryDetailsScreen> {
   late List<dynamic> documents = [];
   late List<dynamic> allVisits = [];
+  late List<dynamic> allAnnexes = [];
 
   // Track expansion state
   bool _detailsExpanded = false;
   bool _visitsExpanded = false;
+  bool _annexExpanded = false;
   bool _documentsExpanded = false;
 
   AssignToMeModel get i => widget.inquiry;
@@ -42,6 +46,8 @@ class _InquiryDetailsScreenState extends State<InquiryDetailsScreen> {
     super.initState();
     allVisits = i.visits;
     documents = i.requiredDocuments;
+    // Initialize annexes - adjust based on your model structure
+    allAnnexes = []; // TODO: Replace with i.annexes when available in model
   }
 
   void _addVisit() {
@@ -111,6 +117,50 @@ class _InquiryDetailsScreenState extends State<InquiryDetailsScreen> {
         });
       }
     });
+  }
+
+  // Annex related methods
+  void _refreshAnnexes() {
+    setState(() {
+      // TODO: Fetch annexes from API or model
+      // For now, you can reload from the inquiry model if available
+      // allAnnexes = i.annexes;
+
+      // Or fetch from API:
+      // _fetchAnnexes();
+    });
+  }
+
+  void _navigateToAnnexDetails(Map<String, dynamic> annex) {
+    // TODO: Navigate to Annex Details Screen when you create it
+    // Navigator.push(
+    //   context,
+    //   MaterialPageRoute(
+    //     builder: (_) => AnnexDetailsScreen(
+    //       annex: annex,
+    //       inquiryId: i.id.toString(),
+    //     ),
+    //   ),
+    // );
+    print('View Annex Details: ${annex['title']}');
+  }
+
+  void _editAnnex(Map<String, dynamic> annex, int annexNumber) {
+    // TODO: Navigate to Edit Annex Screen when you create it
+    // Navigator.push(
+    //   context,
+    //   MaterialPageRoute(
+    //     builder: (_) => EditAnnexScreen(
+    //       annex: annex,
+    //       annexNumber: annexNumber,
+    //       inquiryId: i.id.toString(),
+    //       onSave: () {
+    //         _refreshAnnexes();
+    //       },
+    //     ),
+    //   ),
+    // );
+    print('Edit Annex #$annexNumber');
   }
 
   @override
@@ -195,6 +245,22 @@ class _InquiryDetailsScreenState extends State<InquiryDetailsScreen> {
                 onEditFinding: _editFinding,
                 onNavigateToFinalizeFinding: _navigateToFinalizeFinding,
                 onAddVisit: _addVisit,
+              ),
+            ),
+
+            // Annex Section
+            _buildCollapsibleSection(
+              title: 'Annex',
+              icon: Icons.folder_special,
+              count: allAnnexes.length,
+              isExpanded: _annexExpanded,
+              onToggle: () => setState(() => _annexExpanded = !_annexExpanded),
+              child: InquiryAnnexSection(
+                inquiryId: i.id, // Added inquiryId
+                annexes: allAnnexes,
+                onNavigateToAnnexDetails: _navigateToAnnexDetails,
+                onEditAnnex: _editAnnex,
+                onAnnexAdded: _refreshAnnexes, // Changed from onAddAnnex to onAnnexAdded
               ),
             ),
 
