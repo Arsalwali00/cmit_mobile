@@ -8,7 +8,7 @@ class ApiService {
     BaseOptions(
       baseUrl: ApiConfig.baseApiUrl,
       connectTimeout: const Duration(seconds: 10),
-      receiveTimeout: const Duration(seconds: 10),
+      receiveTimeout: const Duration(seconds: 30), // longer for uploads
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
@@ -16,7 +16,10 @@ class ApiService {
     ),
   );
 
-  /// ✅ **Attach Authorization Token**
+  /// Public accessor for Dio instance (optional, if other services need it)
+  static Dio get dio => _dio;
+
+  /// ✅ Attach Authorization Token
   static Future<Map<String, String>> _getHeaders({bool withAuth = true}) async {
     String? token = await LocalStorage.getToken();
     return {
@@ -26,12 +29,17 @@ class ApiService {
     };
   }
 
-  /// ✅ **POST Request with Enhanced Error Handling**
+  /// Public version of headers (useful for custom requests)
+  static Future<Map<String, String>> getAuthHeaders({bool withAuth = true}) async {
+    return await _getHeaders(withAuth: withAuth);
+  }
+
+  /// ✅ POST Request (JSON)
   static Future<Map<String, dynamic>> post(
       String endpoint,
-      Map<String, dynamic> data,
-      {bool withAuth = true}
-      ) async {
+      Map<String, dynamic> data, {
+        bool withAuth = true,
+      }) async {
     try {
       print("📤 Sending POST Request to: $endpoint");
       print("📦 Request Data: ${jsonEncode(data)}");
@@ -45,41 +53,18 @@ class ApiService {
       print("✅ Success! Response: ${response.data}");
       return {'success': true, 'data': response.data};
     } on DioException catch (e) {
-      // 🔹 API responded but with an error
-      if (e.response != null) {
-        print("❌ API Error [${e.response?.statusCode}]: ${e.response?.data}");
-        return {
-          'success': false,
-          'message': e.response?.data['message'] ?? "Something went wrong",
-          'status': e.response?.statusCode,
-        };
-      }
-
-      // 🔹 Handle Network/Connection Errors
-      else if (e.type == DioExceptionType.connectionTimeout) {
-        print("❌ Connection Timeout Error: ${e.message}");
-        return {'success': false, 'message': "Connection timeout. Please try again."};
-      } else if (e.type == DioExceptionType.receiveTimeout) {
-        print("❌ Receive Timeout Error: ${e.message}");
-        return {'success': false, 'message': "Server took too long to respond."};
-      } else if (e.type == DioExceptionType.badCertificate || e.type == DioExceptionType.badResponse) {
-        print("❌ SSL or Bad Response Error: ${e.message}");
-        return {'success': false, 'message': "Security error: Invalid SSL certificate or bad response."};
-      } else {
-        print("❌ Network Error: ${e.message}");
-        return {'success': false, 'message': "Network issue: Please check your internet connection."};
-      }
+      return _handleDioError(e);
     } catch (e) {
       print("❌ Unexpected Error: $e");
       return {'success': false, 'message': "An unexpected error occurred."};
     }
   }
 
-  /// ✅ **GET Request with Enhanced Error Handling**
+  /// ✅ GET Request
   static Future<Map<String, dynamic>> get(
-      String endpoint,
-      {bool withAuth = true}
-      ) async {
+      String endpoint, {
+        bool withAuth = true,
+      }) async {
     try {
       print("📤 Sending GET Request to: $endpoint");
 
@@ -91,33 +76,56 @@ class ApiService {
       print("✅ Success! Response: ${response.data}");
       return {'success': true, 'data': response.data};
     } on DioException catch (e) {
-      // 🔹 API responded but with an error
-      if (e.response != null) {
-        print("❌ API Error [${e.response?.statusCode}]: ${e.response?.data}");
-        return {
-          'success': false,
-          'message': e.response?.data['message'] ?? "Something went wrong",
-          'status': e.response?.statusCode,
-        };
-      }
-
-      // 🔹 Handle Network/Connection Errors
-      else if (e.type == DioExceptionType.connectionTimeout) {
-        print("❌ Connection Timeout Error: ${e.message}");
-        return {'success': false, 'message': "Connection timeout. Please try again."};
-      } else if (e.type == DioExceptionType.receiveTimeout) {
-        print("❌ Receive Timeout Error: ${e.message}");
-        return {'success': false, 'message': "Server took too long to respond."};
-      } else if (e.type == DioExceptionType.badCertificate || e.type == DioExceptionType.badResponse) {
-        print("❌ SSL or Bad Response Error: ${e.message}");
-        return {'success': false, 'message': "Security error: Invalid SSL certificate or bad response."};
-      } else {
-        print("❌ Network Error: ${e.message}");
-        return {'success': false, 'message': "Network issue: Please check your internet connection."};
-      }
+      return _handleDioError(e);
     } catch (e) {
       print("❌ Unexpected Error: $e");
       return {'success': false, 'message': "An unexpected error occurred."};
+    }
+  }
+
+  /// ✅ Multipart POST Request (File Uploads)
+  static Future<Map<String, dynamic>> postMultipart(
+      String endpoint,
+      FormData formData, {
+        bool withAuth = true,
+        ProgressCallback? onSendProgress,
+      }) async {
+    try {
+      print("📤 Sending Multipart POST to: $endpoint");
+
+      Response response = await _dio.post(
+        endpoint,
+        data: formData,
+        options: Options(headers: await _getHeaders(withAuth: withAuth)),
+        onSendProgress: onSendProgress,
+      );
+
+      print("✅ Upload Success: ${response.data}");
+      return {'success': true, 'data': response.data};
+    } on DioException catch (e) {
+      return _handleDioError(e);
+    } catch (e) {
+      print("❌ Unexpected Upload Error: $e");
+      return {'success': false, 'message': "An unexpected error occurred during upload."};
+    }
+  }
+
+  /// Centralized Dio error handling
+  static Map<String, dynamic> _handleDioError(DioException e) {
+    if (e.response != null) {
+      print("❌ API Error [${e.response?.statusCode}]: ${e.response?.data}");
+      return {
+        'success': false,
+        'message': e.response?.data['message'] ?? "Something went wrong",
+        'status': e.response?.statusCode,
+      };
+    } else if (e.type == DioExceptionType.connectionTimeout) {
+      return {'success': false, 'message': "Connection timeout. Please try again."};
+    } else if (e.type == DioExceptionType.receiveTimeout) {
+      return {'success': false, 'message': "Server took too long to respond."};
+    } else {
+      print("❌ Network Error: ${e.message}");
+      return {'success': false, 'message': "Network issue: Please check your internet connection."};
     }
   }
 }

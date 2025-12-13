@@ -34,4 +34,9 @@ class API {
   // Inside class API (add this line)
   static const String storeAnnex = "${ApiConfig.baseApiUrl}/store/annex";
 
+  // Inside class API (add this line)
+  static const String uploadAnnexFile = "${ApiConfig.baseApiUrl}/upload/annex/file";
+
+  static const String storeFinalizedFindingInquiry = "${ApiConfig.baseApiUrl}/store/finding/finalized/inquiries";
+
 }

@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_quill/flutter_quill.dart' as quill;
 import 'dart:convert';
 
+import 'package:cmit/core/finalized_finding_service.dart'; // Adjust path if needed
+
 class FinalizedFindingScreen extends StatefulWidget {
   final Map<String, dynamic> visit;
   final String inquiryId;
@@ -44,20 +46,12 @@ class _FinalizedFindingScreenState extends State<FinalizedFindingScreen> {
       combinedFindings += 'Finding #${i + 1} - $user\n$findingsText';
     }
 
-    // Initialize QuillController with combined findings
-    try {
-      // Try to parse as JSON first (in case it's already Quill delta format)
-      final delta = quill.Document.fromJson(jsonDecode(combinedFindings));
-      _quillController = quill.QuillController(
-        document: delta,
-        selection: const TextSelection.collapsed(offset: 0),
-      );
-    } catch (e) {
-      // If not JSON, treat as plain text
-      _quillController = quill.QuillController.basic();
-      if (combinedFindings.isNotEmpty) {
-        _quillController.document.insert(0, combinedFindings);
-      }
+    // Initialize QuillController with plain text (since we're only sending plain text to backend)
+    _quillController = quill.QuillController.basic();
+    if (combinedFindings.isNotEmpty) {
+      _quillController.document.insert(0, combinedFindings);
+      // Move cursor to end
+      _quillController.moveCursorToEnd();
     }
   }
 
@@ -69,38 +63,58 @@ class _FinalizedFindingScreenState extends State<FinalizedFindingScreen> {
   }
 
   Future<void> _submitFinalization() async {
+    if (_isLoading) return;
+
     setState(() => _isLoading = true);
 
     try {
-      // Get the content from Quill editor
-      final deltaJson = jsonEncode(_quillController.document.toDelta().toJson());
-      final plainText = _quillController.document.toPlainText();
+      // Get plain text from Quill editor (this is what your API expects)
+      final String combinedFindings = _quillController.document.toPlainText().trim();
 
-      // TODO: Implement API call to finalize the finding
-      // Example:
-      // final response = await apiService.finalizeFinding(
-      //   inquiryId: widget.inquiryId,
-      //   visitId: widget.visit['id'],
-      //   findingsContent: deltaJson, // Store as JSON for rich text
-      //   findingsPlainText: plainText, // Store plain text for searching
-      // );
+      if (combinedFindings.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please enter some findings before finalizing.'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+        return;
+      }
 
-      await Future.delayed(const Duration(seconds: 1)); // Simulating API call
+      final int visitId = widget.visit['id'] as int;
 
+      print("Submitting finalized finding for visit_id: $visitId");
+      print("Content length: ${combinedFindings.length}");
+
+      final response = await FinalizedFindingService.storeFinalizedFinding(
+        combinedFindings: combinedFindings,
+        visitId: visitId,
+      );
+
+      if (!mounted) return;
+
+      if (response['success'] == true) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(response['message'] ?? 'Finding finalized successfully'),
+            backgroundColor: const Color(0xFF014323),
+          ),
+        );
+        Navigator.pop(context, true); // Return success flag
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(response['message'] ?? 'Failed to finalize finding'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e, stackTrace) {
+      print("Error in _submitFinalization: $e\n$stackTrace");
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Finding finalized successfully'),
-            backgroundColor: Color(0xFF014323),
-          ),
-        );
-        Navigator.pop(context, true); // Return true to indicate success
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: ${e.toString()}'),
+            content: Text('An unexpected error occurred. Please try again.'),
             backgroundColor: Colors.red,
           ),
         );
@@ -269,7 +283,6 @@ class _FinalizedFindingScreenState extends State<FinalizedFindingScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Header
           Padding(
             padding: const EdgeInsets.all(16),
             child: Row(
@@ -287,7 +300,6 @@ class _FinalizedFindingScreenState extends State<FinalizedFindingScreen> {
               ],
             ),
           ),
-          // Toolbar
           Container(
             color: const Color(0xFFF8F9FA),
             child: quill.QuillToolbar.simple(
@@ -298,32 +310,17 @@ class _FinalizedFindingScreenState extends State<FinalizedFindingScreen> {
                 showBoldButton: true,
                 showItalicButton: true,
                 showUnderLineButton: true,
-                showStrikeThrough: false,
-                showColorButton: false,
-                showBackgroundColorButton: false,
                 showListBullets: true,
                 showListNumbers: true,
-                showListCheck: false,
-                showCodeBlock: false,
-                showQuote: false,
                 showIndent: true,
-                showLink: false,
                 showUndo: true,
                 showRedo: true,
-                showDirection: false,
-                showSearchButton: false,
-                showSubscript: false,
-                showSuperscript: false,
-                showInlineCode: false,
-                showFontFamily: false,
-                showFontSize: false,
                 showClearFormat: true,
                 showHeaderStyle: true,
               ),
             ),
           ),
           const Divider(height: 1),
-          // Editor
           quill.QuillEditor.basic(
             configurations: quill.QuillEditorConfigurations(
               controller: _quillController,
