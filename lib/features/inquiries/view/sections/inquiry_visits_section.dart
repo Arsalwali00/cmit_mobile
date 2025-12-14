@@ -1,7 +1,10 @@
 // lib/features/inquiries/view/sections/inquiry_visits_section.dart
 import 'package:flutter/material.dart';
+import 'package:cmit/features/home/model/assign_to_me_model.dart';
+import 'package:cmit/features/inquiries/view/permissions.dart';
 
 class InquiryVisitsSection extends StatefulWidget {
+  final AssignToMeModel inquiry;
   final List<dynamic> visits;
   final Function(Map<String, dynamic>) onNavigateToFindings;
   final Function(Map<String, dynamic>, Map<String, dynamic>, int) onEditFinding;
@@ -10,6 +13,7 @@ class InquiryVisitsSection extends StatefulWidget {
 
   const InquiryVisitsSection({
     super.key,
+    required this.inquiry,
     required this.visits,
     required this.onNavigateToFindings,
     required this.onEditFinding,
@@ -34,6 +38,11 @@ class _InquiryVisitsSectionState extends State<InquiryVisitsSection> {
 
   @override
   Widget build(BuildContext context) {
+    // Check permissions
+    final bool canAddVisit = InquiryPermissions.canAddFieldVisit(widget.inquiry);
+    final bool canEditFinding = InquiryPermissions.canEditFinding(widget.inquiry);
+    final bool canFinalizeFindings = InquiryPermissions.canFinalizeFindings(widget.inquiry);
+
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -44,33 +53,44 @@ class _InquiryVisitsSectionState extends State<InquiryVisitsSection> {
             ...widget.visits.asMap().entries.map((entry) {
               final int visitNumber = entry.key + 1;
               final visit = entry.value as Map<String, dynamic>;
-              return _visitCard(visit, visitNumber);
+              return _visitCard(
+                visit,
+                visitNumber,
+                canEditFinding: canEditFinding,
+                canFinalizeFindings: canFinalizeFindings,
+              );
             }).toList(),
 
           const SizedBox(height: 12),
 
-          // Add Visit Button
-          Center(
-            child: OutlinedButton.icon(
-              onPressed: widget.onAddVisit,
-              icon: const Icon(Icons.add, size: 18),
-              label: const Text('Add Field Visit'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: const Color(0xFF014323),
-                side: const BorderSide(color: Color(0xFF014323)),
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
+          // Add Visit Button - Only show to chairperson
+          if (canAddVisit)
+            Center(
+              child: OutlinedButton.icon(
+                onPressed: widget.onAddVisit,
+                icon: const Icon(Icons.add, size: 18),
+                label: const Text('Add Field Visit'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFF014323),
+                  side: const BorderSide(color: Color(0xFF014323)),
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                 ),
               ),
             ),
-          ),
         ],
       ),
     );
   }
 
-  Widget _visitCard(Map<String, dynamic> visit, int visitNumber) {
+  Widget _visitCard(
+      Map<String, dynamic> visit,
+      int visitNumber, {
+        required bool canEditFinding,
+        required bool canFinalizeFindings,
+      }) {
     final findingsList = (visit['findings'] as List<dynamic>? ?? [])
         .cast<Map<String, dynamic>>();
 
@@ -192,21 +212,23 @@ class _InquiryVisitsSectionState extends State<InquiryVisitsSection> {
                           ),
                         ),
                         const Spacer(),
-                        ElevatedButton.icon(
-                          onPressed: () => widget.onNavigateToFinalizeFinding(visit),
-                          icon: const Icon(Icons.check_circle, size: 16),
-                          label: const Text('Finalize'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF014323),
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                            minimumSize: Size.zero,
-                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(6),
+                        // Finalize button - Only show to chairperson
+                        if (canFinalizeFindings)
+                          ElevatedButton.icon(
+                            onPressed: () => widget.onNavigateToFinalizeFinding(visit),
+                            icon: const Icon(Icons.check_circle, size: 16),
+                            label: const Text('Finalize'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF014323),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              minimumSize: Size.zero,
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(6),
+                              ),
                             ),
                           ),
-                        ),
                       ],
                     ),
                     const SizedBox(height: 8),
@@ -217,6 +239,7 @@ class _InquiryVisitsSectionState extends State<InquiryVisitsSection> {
                         user: (finding['user'] ?? 'Unknown').toString(),
                         findingsText: (finding['findings'] ?? '').toString(),
                         number: index,
+                        canEdit: canEditFinding,
                         onEdit: () => widget.onEditFinding(visit, finding, index),
                       );
                     }).toList(),
@@ -277,6 +300,7 @@ class _InquiryVisitsSectionState extends State<InquiryVisitsSection> {
     required String user,
     required String findingsText,
     required int number,
+    required bool canEdit,
     required VoidCallback onEdit,
   }) {
     return Container(
@@ -317,13 +341,15 @@ class _InquiryVisitsSectionState extends State<InquiryVisitsSection> {
                   ),
                 ),
               ),
-              IconButton(
-                icon: const Icon(Icons.edit, size: 16, color: Color(0xFF014323)),
-                onPressed: onEdit,
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
-                tooltip: 'Edit Finding',
-              ),
+              // Edit button - Only show to chairperson
+              if (canEdit)
+                IconButton(
+                  icon: const Icon(Icons.edit, size: 16, color: Color(0xFF014323)),
+                  onPressed: onEdit,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                  tooltip: 'Edit Finding',
+                ),
             ],
           ),
           if (findingsText.isNotEmpty) ...[

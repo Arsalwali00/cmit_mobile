@@ -4,11 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter_pdfview/flutter_pdfview.dart';
+import 'package:cmit/features/home/model/assign_to_me_model.dart';
+import 'package:cmit/features/inquiries/view/permissions.dart';
 import '../add_annex.dart';
 import '../add_attachment_annex.dart';
 
 class InquiryAnnexSection extends StatefulWidget {
-  final int inquiryId;
+  final AssignToMeModel inquiry;
   final List<dynamic> annexes;
   final Function(Map<String, dynamic>) onNavigateToAnnexDetails;
   final Function(Map<String, dynamic>, int) onEditAnnex;
@@ -16,7 +18,7 @@ class InquiryAnnexSection extends StatefulWidget {
 
   const InquiryAnnexSection({
     super.key,
-    required this.inquiryId,
+    required this.inquiry,
     required this.annexes,
     required this.onNavigateToAnnexDetails,
     required this.onEditAnnex,
@@ -40,11 +42,17 @@ class _InquiryAnnexSectionState extends State<InquiryAnnexSection> {
   }
 
   void _navigateToAddAnnex() async {
+    // Check permission
+    if (!InquiryPermissions.canAddAnnex(widget.inquiry)) {
+      _showSnackBar('Only chairperson can add annexes', isError: true);
+      return;
+    }
+
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => AddAnnexScreen(
-          inquiryId: widget.inquiryId,
+          inquiryId: widget.inquiry.id,
           onAnnexAdded: widget.onAnnexAdded,
         ),
       ),
@@ -76,6 +84,7 @@ class _InquiryAnnexSectionState extends State<InquiryAnnexSection> {
 
   Widget _buildFilesSheet(Map<String, dynamic> annex, List files, int annexNumber) {
     final annexTitle = annex['title']?.toString() ?? 'Annex $annexNumber';
+    final bool canAddAttachment = InquiryPermissions.canAddAttachmentToAnnex(widget.inquiry);
 
     return DraggableScrollableSheet(
       initialChildSize: 0.7,
@@ -146,26 +155,27 @@ class _InquiryAnnexSectionState extends State<InquiryAnnexSection> {
                 ),
               ),
               const SizedBox(height: 12),
-              // Add Attachment Button
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  onPressed: () {
-                    Navigator.pop(context); // Close bottom sheet
-                    _navigateToAddAttachment(annex, annexNumber);
-                  },
-                  icon: const Icon(Icons.add, size: 18),
-                  label: const Text('Add Attachment'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: const Color(0xFF014323),
-                    side: const BorderSide(color: Color(0xFF014323)),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
+              // Add Attachment Button - Only show to chairperson
+              if (canAddAttachment)
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      _navigateToAddAttachment(annex, annexNumber);
+                    },
+                    icon: const Icon(Icons.add, size: 18),
+                    label: const Text('Add Attachment'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFF014323),
+                      side: const BorderSide(color: Color(0xFF014323)),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
                     ),
                   ),
                 ),
-              ),
             ],
           ),
         );
@@ -274,6 +284,12 @@ class _InquiryAnnexSectionState extends State<InquiryAnnexSection> {
   }
 
   void _navigateToAddAttachment(Map<String, dynamic> annex, int annexNumber) async {
+    // Check permission
+    if (!InquiryPermissions.canAddAttachmentToAnnex(widget.inquiry)) {
+      _showSnackBar('Only chairperson can add attachments', isError: true);
+      return;
+    }
+
     final annexId = int.tryParse((annex['id'] ?? annex['annex_id']).toString()) ?? 0;
     final annexTitle = annex['title']?.toString() ?? 'Annex $annexNumber';
 
@@ -312,6 +328,10 @@ class _InquiryAnnexSectionState extends State<InquiryAnnexSection> {
 
   @override
   Widget build(BuildContext context) {
+    final bool canAddAnnex = InquiryPermissions.canAddAnnex(widget.inquiry);
+    final bool canAddAttachment = InquiryPermissions.canAddAttachmentToAnnex(widget.inquiry);
+    final bool canEditAnnex = InquiryPermissions.canEditAnnex(widget.inquiry);
+
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -322,32 +342,44 @@ class _InquiryAnnexSectionState extends State<InquiryAnnexSection> {
             ...widget.annexes.asMap().entries.map((entry) {
               final int annexNumber = entry.key + 1;
               final annex = entry.value as Map<String, dynamic>;
-              return _annexItem(annex, annexNumber);
+              return _annexItem(
+                annex,
+                annexNumber,
+                canAddAttachment: canAddAttachment,
+                canEditAnnex: canEditAnnex,
+              );
             }).toList(),
 
           const SizedBox(height: 12),
 
-          Center(
-            child: OutlinedButton.icon(
-              onPressed: _navigateToAddAnnex,
-              icon: const Icon(Icons.add, size: 18),
-              label: const Text('Add Annex'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: const Color(0xFF014323),
-                side: const BorderSide(color: Color(0xFF014323)),
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
+          // Add Annex Button - Only show to chairperson
+          if (canAddAnnex)
+            Center(
+              child: OutlinedButton.icon(
+                onPressed: _navigateToAddAnnex,
+                icon: const Icon(Icons.add, size: 18),
+                label: const Text('Add Annex'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFF014323),
+                  side: const BorderSide(color: Color(0xFF014323)),
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                 ),
               ),
             ),
-          ),
         ],
       ),
     );
   }
 
-  Widget _annexItem(Map<String, dynamic> annex, int annexNumber) {
+  Widget _annexItem(
+      Map<String, dynamic> annex,
+      int annexNumber, {
+        required bool canAddAttachment,
+        required bool canEditAnnex,
+      }) {
     final String title = (annex['title'] ?? 'Untitled').toString();
     final List<dynamic> files = (annex['annex_files'] ?? []) as List<dynamic>;
     final bool hasFiles = files.isNotEmpty;
@@ -464,49 +496,54 @@ class _InquiryAnnexSectionState extends State<InquiryAnnexSection> {
                       elevation: 0,
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  IconButton(
-                    icon: const Icon(Icons.add, size: 18, color: Color(0xFF014323)),
-                    onPressed: () => _navigateToAddAttachment(annex, annexNumber),
-                    tooltip: 'Add Attachment',
-                    style: IconButton.styleFrom(
-                      side: const BorderSide(color: Color(0xFF014323)),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(6),
+                  if (canAddAttachment) ...[
+                    const SizedBox(width: 8),
+                    IconButton(
+                      icon: const Icon(Icons.add, size: 18, color: Color(0xFF014323)),
+                      onPressed: () => _navigateToAddAttachment(annex, annexNumber),
+                      tooltip: 'Add Attachment',
+                      style: IconButton.styleFrom(
+                        side: const BorderSide(color: Color(0xFF014323)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(6),
+                        ),
                       ),
                     ),
-                  ),
+                  ],
                 ],
               )
             else
               Row(
                 children: [
-                  ElevatedButton.icon(
-                    onPressed: () => _navigateToAddAttachment(annex, annexNumber),
-                    icon: const Icon(Icons.add, size: 16),
-                    label: const Text('Add Files', style: TextStyle(fontSize: 13)),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF014323),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      elevation: 0,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  IconButton(
-                    icon: const Icon(Icons.edit, size: 18, color: Color(0xFF014323)),
-                    onPressed: () => widget.onEditAnnex(annex, annexNumber),
-                    tooltip: 'Edit Annex',
-                    style: IconButton.styleFrom(
-                      side: const BorderSide(color: Color(0xFF014323)),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(6),
+                  if (canAddAttachment)
+                    ElevatedButton.icon(
+                      onPressed: () => _navigateToAddAttachment(annex, annexNumber),
+                      icon: const Icon(Icons.add, size: 16),
+                      label: const Text('Add Files', style: TextStyle(fontSize: 13)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF014323),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        elevation: 0,
                       ),
                     ),
-                  ),
+                  if (canEditAnnex) ...[
+                    const SizedBox(width: 8),
+                    IconButton(
+                      icon: const Icon(Icons.edit, size: 18, color: Color(0xFF014323)),
+                      onPressed: () => widget.onEditAnnex(annex, annexNumber),
+                      tooltip: 'Edit Annex',
+                      style: IconButton.styleFrom(
+                        side: const BorderSide(color: Color(0xFF014323)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                      ),
+                    ),
+                  ],
                 ],
               ),
           ],
@@ -542,7 +579,7 @@ class _InquiryAnnexSectionState extends State<InquiryAnnexSection> {
   }
 }
 
-// Image Viewer Screen
+// Image Viewer Screen (unchanged)
 class ImageViewerScreen extends StatelessWidget {
   final String imageUrl;
   final String title;
@@ -604,7 +641,7 @@ class ImageViewerScreen extends StatelessWidget {
   }
 }
 
-// PDF Viewer Screen
+// PDF Viewer Screen (unchanged - keeping it as is)
 class PDFViewerScreen extends StatefulWidget {
   final String pdfUrl;
   final String title;

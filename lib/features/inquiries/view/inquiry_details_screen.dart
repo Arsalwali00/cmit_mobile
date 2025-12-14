@@ -1,6 +1,7 @@
 // lib/features/inquiries/view/inquiry_details_screen.dart
 import 'package:flutter/material.dart';
 import 'package:cmit/features/home/model/assign_to_me_model.dart';
+import 'package:cmit/features/inquiries/view/permissions.dart';
 
 // Import section widgets
 import 'sections/inquiry_header_section.dart';
@@ -46,10 +47,16 @@ class _InquiryDetailsScreenState extends State<InquiryDetailsScreen> {
     super.initState();
     allVisits = i.visits;
     documents = i.requiredDocuments;
-    allAnnexes = i.annexes;  // NOW PROPERLY INITIALIZED FROM MODEL
+    allAnnexes = i.annexes;
   }
 
   void _addVisit() {
+    // Check permission
+    if (!InquiryPermissions.canAddFieldVisit(i)) {
+      _showPermissionError('Only chairperson can add field visits');
+      return;
+    }
+
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -82,6 +89,12 @@ class _InquiryDetailsScreenState extends State<InquiryDetailsScreen> {
   }
 
   void _editFinding(Map<String, dynamic> visit, Map<String, dynamic> finding, int index) {
+    // Check permission
+    if (!InquiryPermissions.canEditFinding(i)) {
+      _showPermissionError('Only chairperson can edit findings');
+      return;
+    }
+
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -101,6 +114,12 @@ class _InquiryDetailsScreenState extends State<InquiryDetailsScreen> {
   }
 
   void _navigateToFinalizeFinding(Map<String, dynamic> visit) {
+    // Check permission
+    if (!InquiryPermissions.canFinalizeFindings(i)) {
+      _showPermissionError('Only chairperson can finalize findings');
+      return;
+    }
+
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -118,28 +137,13 @@ class _InquiryDetailsScreenState extends State<InquiryDetailsScreen> {
     });
   }
 
-  // Annex related methods
   void _refreshAnnexes() {
     setState(() {
-      // TODO: Reload inquiry data from API to get updated annexes
-      // For now, keeping the current annexes
       allAnnexes = i.annexes;
     });
   }
 
   void _navigateToAnnexDetails(Map<String, dynamic> annex) {
-    // TODO: Navigate to Annex Details Screen when you create it
-    // Navigator.push(
-    //   context,
-    //   MaterialPageRoute(
-    //     builder: (_) => AnnexDetailsScreen(
-    //       annex: annex,
-    //       inquiryId: i.id.toString(),
-    //     ),
-    //   ),
-    // );
-
-    // For now, show a dialog with annex info
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -166,9 +170,25 @@ class _InquiryDetailsScreenState extends State<InquiryDetailsScreen> {
   }
 
   void _editAnnex(Map<String, dynamic> annex, int annexNumber) {
-    // TODO: Navigate to Edit Annex Screen when you create it
+    // Check permission
+    if (!InquiryPermissions.canEditAnnex(i)) {
+      _showPermissionError('Only chairperson can edit annexes');
+      return;
+    }
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('Edit Annex #$annexNumber - Coming soon')),
+    );
+  }
+
+  void _showPermissionError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 3),
+      ),
     );
   }
 
@@ -227,7 +247,7 @@ class _InquiryDetailsScreenState extends State<InquiryDetailsScreen> {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            // Header Section
+            // Header Section with Finalize button (only for chairperson)
             InquiryHeaderSection(inquiry: i),
 
             const SizedBox(height: 8),
@@ -249,6 +269,7 @@ class _InquiryDetailsScreenState extends State<InquiryDetailsScreen> {
               isExpanded: _visitsExpanded,
               onToggle: () => setState(() => _visitsExpanded = !_visitsExpanded),
               child: InquiryVisitsSection(
+                inquiry: i,
                 visits: allVisits,
                 onNavigateToFindings: _navigateToFindings,
                 onEditFinding: _editFinding,
@@ -265,7 +286,7 @@ class _InquiryDetailsScreenState extends State<InquiryDetailsScreen> {
               isExpanded: _annexExpanded,
               onToggle: () => setState(() => _annexExpanded = !_annexExpanded),
               child: InquiryAnnexSection(
-                inquiryId: i.id,
+                inquiry: i,
                 annexes: allAnnexes,
                 onNavigateToAnnexDetails: _navigateToAnnexDetails,
                 onEditAnnex: _editAnnex,

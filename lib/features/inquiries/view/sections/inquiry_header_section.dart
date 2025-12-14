@@ -1,6 +1,7 @@
 // lib/features/inquiries/view/sections/inquiry_header_section.dart
 import 'package:flutter/material.dart';
 import 'package:cmit/features/home/model/assign_to_me_model.dart';
+import 'package:cmit/features/inquiries/view/permissions.dart';
 
 class InquiryHeaderSection extends StatelessWidget {
   final AssignToMeModel inquiry;
@@ -14,6 +15,9 @@ class InquiryHeaderSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Check if user has permission to finalize
+    final bool canFinalize = InquiryPermissions.canFinalizeInquiry(inquiry);
+
     return Container(
       width: double.infinity,
       color: Colors.white,
@@ -34,28 +38,30 @@ class InquiryHeaderSection extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 12),
-              ElevatedButton(
-                onPressed: () => _showFinalizeConfirmation(context),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF014323),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 10,
+              // Only show finalize button if user is chairperson
+              if (canFinalize)
+                ElevatedButton(
+                  onPressed: () => _showFinalizeConfirmation(context),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF014323),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 10,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    elevation: 0,
                   ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+                  child: const Text(
+                    'Finalize Inquiry',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
-                  elevation: 0,
                 ),
-                child: const Text(
-                  'Finalize Inquiry',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
             ],
           ),
           const SizedBox(height: 12),
@@ -110,7 +116,7 @@ class InquiryHeaderSection extends StatelessWidget {
             ),
           ),
           content: const Text(
-            'Are you sure you want to finalize this inquiry?',
+            'Are you sure you want to finalize this inquiry? This action cannot be undone.',
             style: TextStyle(fontSize: 15),
           ),
           actions: [
