@@ -1,31 +1,42 @@
-// lib/features/inquiries/view/visit_findings_screen.dart - ONLINE ONLY VERSION
+// lib/features/offline/view/offline_visit_findings_screen.dart - WITH OFFLINE SUPPORT
 import 'package:flutter/material.dart';
 import 'package:flutter_quill/flutter_quill.dart' as quill;
 import 'package:cmit/core/finding_inquiry_service.dart';
+import 'package:cmit/features/offline/services/offline_service.dart';
+import 'package:cmit/features/offline/widgets/offline_indicator.dart';
 
-class VisitFindingsScreen extends StatefulWidget {
+class OfflineVisitFindingsScreen extends StatefulWidget {
   final Map<String, dynamic> visit;
   final String inquiryId;
 
-  const VisitFindingsScreen({
+  const OfflineVisitFindingsScreen({
     super.key,
     required this.visit,
     required this.inquiryId,
   });
 
   @override
-  State<VisitFindingsScreen> createState() => _VisitFindingsScreenState();
+  State<OfflineVisitFindingsScreen> createState() => _OfflineVisitFindingsScreenState();
 }
 
-class _VisitFindingsScreenState extends State<VisitFindingsScreen> {
+class _OfflineVisitFindingsScreenState extends State<OfflineVisitFindingsScreen> {
   late quill.QuillController _controller;
   final FocusNode _focusNode = FocusNode();
   bool _isSubmitting = false;
+  bool _isOnline = true;
 
   @override
   void initState() {
     super.initState();
     _loadExistingData();
+    _checkConnectivity();
+  }
+
+  Future<void> _checkConnectivity() async {
+    final hasInternet = await OfflineService.hasInternet();
+    if (mounted) {
+      setState(() => _isOnline = hasInternet);
+    }
   }
 
   void _loadExistingData() {
@@ -65,6 +76,19 @@ class _VisitFindingsScreenState extends State<VisitFindingsScreen> {
 
     if (_isSubmitting) return;
 
+    setState(() => _isSubmitting = true);
+
+    // Check connectivity again
+    await _checkConnectivity();
+
+    if (_isOnline) {
+      await _submitOnline(content);
+    } else {
+      await _submitOffline(content);
+    }
+  }
+
+  Future<void> _submitOnline(String content) async {
     final visitId = widget.visit['id'];
     if (visitId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -73,10 +97,9 @@ class _VisitFindingsScreenState extends State<VisitFindingsScreen> {
           backgroundColor: Colors.red,
         ),
       );
+      setState(() => _isSubmitting = false);
       return;
     }
-
-    setState(() => _isSubmitting = true);
 
     final result = await FindingInquiryService.storeFinding(
       findings: content,
@@ -99,6 +122,49 @@ class _VisitFindingsScreenState extends State<VisitFindingsScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(result['message'] ?? 'Failed to submit findings'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<void> _submitOffline(String content) async {
+    final visitId = widget.visit['id'];
+    if (visitId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Visit ID not found!'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      setState(() => _isSubmitting = false);
+      return;
+    }
+
+    final success = await OfflineService.saveFindingOffline(
+      inquiryId: int.parse(widget.inquiryId),
+      visitId: visitId.toString(),
+      findings: content,
+    );
+
+    if (!mounted) return;
+
+    setState(() => _isSubmitting = false);
+
+    if (success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Findings saved offline. Will sync when online.'),
+          backgroundColor: Color(0xFF014323),
+          behavior: SnackBarBehavior.floating,
+          duration: Duration(seconds: 3),
+        ),
+      );
+      Navigator.pop(context, true);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Failed to save findings offline'),
           backgroundColor: Colors.red,
         ),
       );
@@ -146,6 +212,44 @@ class _VisitFindingsScreenState extends State<VisitFindingsScreen> {
       body: SafeArea(
         child: Column(
           children: [
+            // Offline Indicator
+            const OfflineIndicator(),
+
+            // Offline Mode Notice
+            if (!_isOnline)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE8F5E9),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: const Color(0xFF014323).withOpacity(0.3),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.info_outline,
+                      size: 16,
+                      color: Color(0xFF014323),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Offline mode: Findings will be saved and synced later',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: const Color(0xFF014323).withOpacity(0.8),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
             // Content
             Expanded(
               child: SingleChildScrollView(
@@ -383,9 +487,13 @@ class _VisitFindingsScreenState extends State<VisitFindingsScreen> {
               valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
             ),
           )
-              : const Icon(Icons.send, size: 18),
+              : Icon(_isOnline ? Icons.send : Icons.save, size: 18),
           label: Text(
-            _isSubmitting ? 'Submitting...' : 'Submit Findings',
+            _isSubmitting
+                ? 'Submitting...'
+                : _isOnline
+                ? 'Submit Findings'
+                : 'Save Offline',
             style: const TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w600,
