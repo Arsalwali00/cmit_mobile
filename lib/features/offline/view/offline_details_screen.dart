@@ -77,7 +77,7 @@ class _OfflineDetailsScreenState extends State<OfflineDetailsScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Cannot sync while offline'),
-          backgroundColor: Colors.orange,
+          backgroundColor: Color(0xFF014323),
         ),
       );
       return;
@@ -133,7 +133,7 @@ class _OfflineDetailsScreenState extends State<OfflineDetailsScreen> {
               'Synced $syncedCount ${syncedCount == 1 ? 'finding' : 'findings'} successfully'
                   '${failedCount > 0 ? ' ($failedCount failed)' : ''}',
             ),
-            backgroundColor: failedCount > 0 ? Colors.orange : const Color(0xFF014323),
+            backgroundColor: failedCount > 0 ? const Color(0xFF014323) : const Color(0xFF014323),
           ),
         );
 
@@ -298,12 +298,12 @@ class _OfflineDetailsScreenState extends State<OfflineDetailsScreen> {
       decoration: BoxDecoration(
         color: _isOnline
             ? const Color(0xFFE8F5E9)
-            : const Color(0xFFFFF3E0),
+            : const Color(0xFFE8F5E9),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: _isOnline
               ? const Color(0xFF014323).withOpacity(0.2)
-              : const Color(0xFFFF9800).withOpacity(0.3),
+              : const Color(0xFF014323).withOpacity(0.3),
         ),
       ),
       child: Row(
@@ -316,9 +316,7 @@ class _OfflineDetailsScreenState extends State<OfflineDetailsScreen> {
             ),
             child: Icon(
               _isOnline ? Icons.cloud_done : Icons.cloud_off,
-              color: _isOnline
-                  ? const Color(0xFF014323)
-                  : const Color(0xFFFF9800),
+              color: const Color(0xFF014323),
               size: 28,
             ),
           ),
@@ -329,12 +327,10 @@ class _OfflineDetailsScreenState extends State<OfflineDetailsScreen> {
               children: [
                 Text(
                   _isOnline ? 'Online' : 'Offline',
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
-                    color: _isOnline
-                        ? const Color(0xFF014323)
-                        : const Color(0xFFFF9800),
+                    color: Color(0xFF014323),
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -366,7 +362,7 @@ class _OfflineDetailsScreenState extends State<OfflineDetailsScreen> {
             children: [
               const Icon(
                 Icons.sync_problem,
-                color: Color(0xFFFF9800),
+                color: Color(0xFF014323),
                 size: 24,
               ),
               const SizedBox(width: 12),

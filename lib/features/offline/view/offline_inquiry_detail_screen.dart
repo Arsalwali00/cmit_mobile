@@ -66,7 +66,7 @@ class _OfflineInquiryDetailsScreenState extends State<OfflineInquiryDetailsScree
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: const Color(0xFFFF9800),
+        backgroundColor: const Color(0xFF014323),
         behavior: SnackBarBehavior.floating,
         duration: const Duration(seconds: 3),
         action: SnackBarAction(
@@ -142,13 +142,13 @@ class _OfflineInquiryDetailsScreenState extends State<OfflineInquiryDetailsScree
               child: Container(
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                color: const Color(0xFFFFF3E0),
+                color: const Color(0xFFE8F5E9),
                 child: Row(
                   children: [
                     const Icon(
                       Icons.cloud_off,
                       size: 18,
-                      color: Color(0xFFFF9800),
+                      color: Color(0xFF014323),
                     ),
                     const SizedBox(width: 10),
                     Expanded(
@@ -159,7 +159,7 @@ class _OfflineInquiryDetailsScreenState extends State<OfflineInquiryDetailsScree
                             'Offline Mode',
                             style: TextStyle(
                               fontSize: 13,
-                              color: Color(0xFFFF9800),
+                              color: Color(0xFF014323),
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -168,7 +168,7 @@ class _OfflineInquiryDetailsScreenState extends State<OfflineInquiryDetailsScree
                             'Viewing cached data - Read only',
                             style: TextStyle(
                               fontSize: 11,
-                              color: const Color(0xFFFF9800).withOpacity(0.8),
+                              color: const Color(0xFF014323).withOpacity(0.8),
                             ),
                           ),
                         ],
@@ -177,7 +177,7 @@ class _OfflineInquiryDetailsScreenState extends State<OfflineInquiryDetailsScree
                     const Icon(
                       Icons.chevron_right,
                       size: 20,
-                      color: Color(0xFFFF9800),
+                      color: Color(0xFF014323),
                     ),
                   ],
                 ),
@@ -220,10 +220,10 @@ class _OfflineInquiryDetailsScreenState extends State<OfflineInquiryDetailsScree
                     margin: const EdgeInsets.fromLTRB(16, 8, 16, 16),
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFFFF3E0),
+                      color: const Color(0xFFE8F5E9),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: const Color(0xFFFF9800).withOpacity(0.3),
+                        color: const Color(0xFF014323).withOpacity(0.3),
                       ),
                     ),
                     child: Row(
@@ -231,7 +231,7 @@ class _OfflineInquiryDetailsScreenState extends State<OfflineInquiryDetailsScree
                       children: [
                         const Icon(
                           Icons.info_outline,
-                          color: Color(0xFFFF9800),
+                          color: Color(0xFF014323),
                           size: 22,
                         ),
                         const SizedBox(width: 12),
@@ -244,7 +244,7 @@ class _OfflineInquiryDetailsScreenState extends State<OfflineInquiryDetailsScree
                                 style: TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w600,
-                                  color: Color(0xFFFF9800),
+                                  color: Color(0xFF014323),
                                 ),
                               ),
                               const SizedBox(height: 4),
@@ -252,7 +252,7 @@ class _OfflineInquiryDetailsScreenState extends State<OfflineInquiryDetailsScree
                                 'You can view inquiry details offline, but editing is disabled. Connect to internet to make changes.',
                                 style: TextStyle(
                                   fontSize: 12,
-                                  color: const Color(0xFFFF9800).withOpacity(0.9),
+                                  color: const Color(0xFF014323).withOpacity(0.9),
                                   height: 1.4,
                                 ),
                               ),
