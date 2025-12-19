@@ -1,21 +1,27 @@
+// lib/core/finding_inquiry_service.dart
 import 'package:cmit/core/api_service.dart';
 import 'package:cmit/config/api.dart';
 import 'package:cmit/features/inquiries/model/finding_inquiry_model.dart';
 
 class FindingInquiryService {
-  /// Save Finding for a Visit
+  /// Save Finding for a Visit with optional file attachments
   static Future<Map<String, dynamic>> storeFinding({
     required String findings,
     required int visitId,
+    List<String>? files,
   }) async {
     try {
       final payload = FindingInquiryModel(
         findings: findings,
         visitId: visitId,
+        files: files,
       );
 
       print("Storing Finding → ${API.storeFindingInquiry}");
       print("Payload: ${payload.toJson()}");
+      if (files != null) {
+        print("Number of files: ${files.length}");
+      }
 
       final response = await ApiService.post(
         API.storeFindingInquiry,
